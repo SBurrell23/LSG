@@ -17,8 +17,10 @@
   // ---- key picker ----
   const pretty = name => name.replace(/([A-G])b/, '$1♭').replace(/([A-G])#/, '$1♯');
   (function fillKeys() {
-    const majors = Theory.KEYS.major.slice().sort((a, b) => a.fifths - b.fifths);
-    const minors = Theory.KEYS.minor.slice().sort((a, b) => a.fifths - b.fifths);
+    // Easiest first: fewest accidentals, sharps before flats on ties (C, G, F, D, Bb, A, Eb ...).
+    const byDifficulty = (a, b) => Math.abs(a.fifths) - Math.abs(b.fifths) || b.fifths - a.fifths;
+    const majors = Theory.KEYS.major.slice().sort(byDifficulty);
+    const minors = Theory.KEYS.minor.slice().sort(byDifficulty);
     const grp = (label, list, suffix) => {
       const g = document.createElement('optgroup'); g.label = label;
       for (const k of list) {
