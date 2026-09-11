@@ -109,9 +109,33 @@
     </aside>
 
     <section class="sheet-wrap">
-      <div id="sheet" class="sheet" aria-live="polite"></div>
+      <div class="sheet-frame">
+        <div class="sheet-tools">
+          <button id="save" class="tool-btn" type="button" aria-pressed="false" title="Save this sheet">
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path class="bm" d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+            <span id="save-label">Save</span>
+          </button>
+          <button id="open-saved" class="tool-btn" type="button" title="Open saved sheets">
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Saved <span id="saved-count" class="count">0</span>
+          </button>
+        </div>
+        <div id="sheet" class="sheet" aria-live="polite"></div>
+      </div>
     </section>
   </main>
+
+  <div id="saved-modal" class="modal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="saved-title">
+      <div class="modal-head">
+        <h2 id="saved-title">Saved sheets</h2>
+        <button class="modal-close" type="button" aria-label="Close" data-close>×</button>
+      </div>
+      <ul id="saved-list" class="saved-list"></ul>
+      <p id="saved-empty" class="hint saved-empty">Nothing saved yet. Press <b>Save</b> on a sheet you like and it will show up here.</p>
+    </div>
+  </div>
 
   <script src="js/rng.js"></script>
   <script src="js/theory.js"></script>

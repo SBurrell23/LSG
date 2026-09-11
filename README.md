@@ -19,6 +19,7 @@ Notation rendering and playback use [abcjs](https://github.com/paulrosen/abcjs) 
 - Two **Difficulty** sliders (1–10): one for the chords, one for the melody. They move together by default; untick *Move both sliders together* to mix, e.g. easy chords with a hard melody. Hover a number to see what that level includes. A new sheet is generated when you let go, or press **New lead sheet** / `N`.
 - **Key** and **Time** default to random, or pick any major/minor key and 4/4 or 3/4.
 - **Play along** plays the melody with the chords as accompaniment (`Space` toggles play/pause); the note being played is highlighted on the sheet. Untick *Play chord accompaniment* to hear the melody alone.
+- **Save** (top-right of the score) keeps the current sheet in your browser's local storage; **Saved** opens the list so you can reopen or remove any of them.
 - **Print / PDF** prints just the sheet.
 - Every sheet has a **seed**. The URL (`?chords=6&melody=4&seed=123456&key=Eb`) recreates the exact same sheet, and *Copy link* copies it. You can also paste a seed into the box and press *Load*.
 - The ABC notation source is available under *ABC notation source* if you want to paste it into another editor.

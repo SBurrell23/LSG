@@ -158,6 +158,70 @@
     }).catch(err => console.warn('Audio problem:', err));
   }
 
+  // ---- saved sheets (localStorage) ----
+  const SAVED_KEY = 'lsg-saved';
+  const readSaved = () => { try { const v = JSON.parse(localStorage.getItem(SAVED_KEY) || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; } };
+  const writeSaved = list => { try { localStorage.setItem(SAVED_KEY, JSON.stringify(list)); } catch (e) { /* storage full or blocked */ } };
+  const sheetId = t => [t.chordsLevel, t.melodyLevel, t.seed, keySelect.value || '', meterSelect.value || ''].join('|');
+  const findSaved = t => readSaved().findIndex(s => s.id === sheetId(t));
+
+  function updateSaveButton() {
+    const saved = current ? findSaved(current) >= 0 : false;
+    $('save').setAttribute('aria-pressed', saved ? 'true' : 'false');
+    $('save-label').textContent = saved ? 'Saved' : 'Save';
+    $('save').title = saved ? 'Remove from saved sheets' : 'Save this sheet';
+    $('saved-count').textContent = readSaved().length;
+  }
+
+  function toggleSave() {
+    if (!current) return;
+    const list = readSaved();
+    const i = list.findIndex(s => s.id === sheetId(current));
+    if (i >= 0) list.splice(i, 1);
+    else list.unshift({
+      id: sheetId(current), title: current.title, chords: current.chordsLevel, melody: current.melodyLevel,
+      seed: current.seed, key: keySelect.value || '', meter: meterSelect.value || '',
+      keyName: pretty(current.key.name.replace(/m$/, '')) + (current.key.mode === 'minor' ? ' minor' : ' major'),
+      time: current.meter, feel: current.feelName, tempo: current.tempo, savedAt: Date.now(),
+    });
+    writeSaved(list);
+    updateSaveButton();
+  }
+
+  function loadSaved(entry) {
+    chordsInput.value = entry.chords; melodyInput.value = entry.melody;
+    linkInput.checked = entry.chords === entry.melody;
+    keySelect.value = entry.key || ''; meterSelect.value = entry.meter || '';
+    updateLevelText();
+    closeModal();
+    generate(entry.seed);
+  }
+
+  function renderSavedList() {
+    const list = readSaved();
+    const ul = $('saved-list');
+    ul.innerHTML = '';
+    $('saved-empty').hidden = list.length > 0;
+    const fmtDate = ts => new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    for (const e of list) {
+      const li = document.createElement('li'); li.className = 'saved-item';
+      const open = document.createElement('button'); open.type = 'button'; open.className = 'saved-open';
+      const levels = e.chords === e.melody ? 'Level ' + e.chords : 'Chords ' + e.chords + ' · Melody ' + e.melody;
+      open.innerHTML = '<span class="t"></span><span class="m"><b></b> · ' + '</span>';
+      open.querySelector('.t').textContent = e.title;
+      open.querySelector('.m b').textContent = levels;
+      open.querySelector('.m').append(document.createTextNode([e.keyName, e.time, e.feel + ' ♩=' + e.tempo, 'saved ' + fmtDate(e.savedAt)].join(' · ')));
+      open.addEventListener('click', () => loadSaved(e));
+      const rm = document.createElement('button'); rm.type = 'button'; rm.className = 'saved-remove'; rm.textContent = '×';
+      rm.title = 'Remove'; rm.setAttribute('aria-label', 'Remove ' + e.title);
+      rm.addEventListener('click', ev => { ev.stopPropagation(); writeSaved(readSaved().filter(s => s.id !== e.id)); renderSavedList(); updateSaveButton(); });
+      li.append(open, rm); ul.appendChild(li);
+    }
+  }
+
+  function openModal() { renderSavedList(); $('saved-modal').hidden = false; $('saved-modal').querySelector('.modal-close').focus(); }
+  function closeModal() { $('saved-modal').hidden = true; }
+
   // ---- generation ----
   function generate(seed) {
     const chords = parseInt(chordsInput.value, 10);
@@ -172,6 +236,7 @@
     updateLevelText();
     writeUrl(current);
     render(current);
+    updateSaveButton();
   }
 
   // ---- events ----
@@ -200,8 +265,13 @@
     const v = parseInt($('seed-input').value.trim(), 10);
     if (Number.isFinite(v)) generate(v >>> 0);
   });
+  $('save').addEventListener('click', toggleSave);
+  $('open-saved').addEventListener('click', openModal);
+  $('saved-modal').addEventListener('click', ev => { if (ev.target.closest('[data-close]')) closeModal(); });
   document.addEventListener('keydown', ev => {
+    if (ev.key === 'Escape' && !$('saved-modal').hidden) { closeModal(); return; }
     if (ev.target.matches('input, textarea, select')) return;
+    if (!$('saved-modal').hidden) return;
     if (ev.key === 'n' || ev.key === 'N') generate();
     if (ev.key === ' ' && synthControl) { ev.preventDefault(); synthControl.play(); }
   });
