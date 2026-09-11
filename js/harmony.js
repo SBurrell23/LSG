@@ -59,6 +59,7 @@ const Harmony = (() => {
     else if (level <= 6) pTwo = role === 'cadence' ? 0.6 : 0.25;
     else if (level <= 8) pTwo = role === 'cadence' ? 0.6 : 0.35;
     else pTwo = 0.45;
+    if (barLen === 8) pTwo *= 0.5; // 2/4: two chords a bar means one per beat, keep it rarer
     if (role === 'turnaround' && level >= 4) pTwo = 1;
     if (rng.chance(pTwo)) {
       if (barLen === 12) return rng.chance(0.5) ? [8, 4] : [4, 8];
@@ -124,7 +125,7 @@ const Harmony = (() => {
   //  form: [{ name, bars, cadence, key, reuse? }]
   //  returns [{ key, chords: [...], bars: [[chord,...] per bar] }] per section
   function generate(rng, level, form, meter) {
-    const barLen = meter === '3/4' ? 12 : 16;
+    const barLen = meter === '3/4' ? 12 : meter === '2/4' ? 8 : 16;
     const sections = [];
     for (const sec of form) {
       if (sec.reuse !== undefined) {
@@ -185,7 +186,7 @@ const Harmony = (() => {
     // A modulated section returns home through the home key's ii–V.
     if (sec.returnKey && sec.cadence === 'half') {
       const hk = sec.returnKey;
-      const half = barLen === 12 ? [8, 4] : [8, 8];
+      const half = barLen === 12 ? [8, 4] : barLen === 8 ? [4, 4] : [8, 8];
       chords = chords.filter(c => c.bar !== nBars - 1);
       chords.push({ root: degreeRoot(hk, 1), quality: hk.mode === 'major' ? 'm7' : 'm7b5', bar: nBars - 1, pos: 0, dur: half[0], degree: 1, diatonic: false, key: hk });
       chords.push({ root: degreeRoot(hk, 4), quality: hk.mode === 'major' ? '7' : '7b9', bar: nBars - 1, pos: half[0], dur: half[1], degree: 4, diatonic: false, key: hk });

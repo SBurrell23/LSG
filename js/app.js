@@ -5,7 +5,7 @@
   const chordsInput = $('chords-level');
   const melodyInput = $('melody-level');
   const keySelect = $('key-select');
-  const meterSelect = $('meter-select');
+  const typeSelect = $('type-select');
   let current = null;
   let synthControl = null;
   let visualObj = null;
@@ -30,6 +30,14 @@
     };
     grp('Major', majors, ' major');
     grp('Minor', minors, ' minor');
+    // Song types grouped by time signature.
+    for (const meter of ['4/4', '3/4', '2/4']) {
+      const g = document.createElement('optgroup'); g.label = meter;
+      for (const t of Tune.TYPES.filter(t => t.meter === meter)) {
+        const o = document.createElement('option'); o.value = t.name; o.textContent = t.name; g.appendChild(o);
+      }
+      typeSelect.appendChild(g);
+    }
   })();
 
   // ---- URL state ----
@@ -40,9 +48,10 @@
     const melody = clampLevel(p.get('melody')) || legacy;
     const seed = parseInt(p.get('seed'), 10);
     const key = p.get('key') || '';
-    const meter = p.get('meter') === '3/4' || p.get('meter') === '4/4' ? p.get('meter') : '';
+    const type = p.get('type') || '';
     const keyOk = [...keySelect.options].some(o => o.value === key) ? key : '';
-    return { chords, melody, seed: Number.isFinite(seed) ? seed >>> 0 : null, key: keyOk, meter };
+    const typeOk = Tune.TYPES.some(t => t.name === type) ? type : '';
+    return { chords, melody, seed: Number.isFinite(seed) ? seed >>> 0 : null, key: keyOk, type: typeOk };
   }
 
   function writeUrl(t) {
@@ -52,7 +61,7 @@
     url.searchParams.set('melody', t.melodyLevel);
     url.searchParams.set('seed', t.seed);
     if (keySelect.value) url.searchParams.set('key', keySelect.value);
-    if (meterSelect.value) url.searchParams.set('meter', meterSelect.value);
+    if (typeSelect.value) url.searchParams.set('type', typeSelect.value);
     history.replaceState(null, '', url);
   }
 
@@ -147,8 +156,6 @@
   $('tempo-modal').addEventListener('click', ev => { if (ev.target.closest('[data-close]')) $('tempo-modal').hidden = true; });
   $('tempo-slider').addEventListener('input', () => showBpm(clampBpm($('tempo-slider').value)));
   $('tempo-slider').addEventListener('change', () => applyBpm($('tempo-slider').value));
-  $('tempo-minus').addEventListener('click', () => applyBpm(bpm - 2));
-  $('tempo-plus').addEventListener('click', () => applyBpm(bpm + 2));
   $('tempo-reset').addEventListener('click', () => applyBpm(current ? current.tempo : 120));
 
   function loadAudio() {
@@ -168,7 +175,7 @@
       displayLoop: true, displayRestart: true, displayPlay: true, displayProgress: true, displayWarp: true,
     });
     synthControl.setTune(visualObj, false, {
-      chordsOff: !$('chords-on').checked,
+      chordsOff: $('chords-on').getAttribute('aria-pressed') !== 'true',
       program: 0,
       midiTranspose: 0,
     }).catch(err => console.warn('Audio problem:', err));
@@ -182,7 +189,7 @@
   const SAVED_KEY = 'lsg-saved';
   const readSaved = () => { try { const v = JSON.parse(localStorage.getItem(SAVED_KEY) || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; } };
   const writeSaved = list => { try { localStorage.setItem(SAVED_KEY, JSON.stringify(list)); } catch (e) { /* storage full or blocked */ } };
-  const sheetId = t => [t.chordsLevel, t.melodyLevel, t.seed, keySelect.value || '', meterSelect.value || ''].join('|');
+  const sheetId = t => [t.chordsLevel, t.melodyLevel, t.seed, keySelect.value || '', typeSelect.value || ''].join('|');
   const findSaved = t => readSaved().findIndex(s => s.id === sheetId(t));
 
   function updateSaveButton() {
@@ -200,7 +207,7 @@
     if (i >= 0) list.splice(i, 1);
     else list.unshift({
       id: sheetId(current), title: current.title, chords: current.chordsLevel, melody: current.melodyLevel,
-      seed: current.seed, key: keySelect.value || '', meter: meterSelect.value || '',
+      seed: current.seed, key: keySelect.value || '', type: typeSelect.value || '',
       keyName: pretty(current.key.name.replace(/m$/, '')) + (current.key.mode === 'minor' ? ' minor' : ' major'),
       time: current.meter, feel: current.feelName, tempo: current.tempo, savedAt: Date.now(),
     });
@@ -210,7 +217,7 @@
 
   function loadSaved(entry) {
     chordsInput.value = entry.chords; melodyInput.value = entry.melody;
-    keySelect.value = entry.key || ''; meterSelect.value = entry.meter || '';
+    keySelect.value = entry.key || ''; typeSelect.value = entry.type || '';
     updateLevelText();
     closeModal();
     generate(entry.seed);
@@ -245,7 +252,7 @@
   function generate(seed) {
     const chords = parseInt(chordsInput.value, 10);
     const melody = parseInt(melodyInput.value, 10);
-    const opts = { chords, melody, seed: seed == null ? randomSeed() : seed, key: keySelect.value || null, meter: meterSelect.value || null };
+    const opts = { chords, melody, seed: seed == null ? randomSeed() : seed, key: keySelect.value || null, type: typeSelect.value || null };
     try {
       current = Tune.generate(opts);
     } catch (err) {
@@ -264,10 +271,12 @@
   chordsInput.addEventListener('change', () => generate());
   melodyInput.addEventListener('change', () => generate());
   keySelect.addEventListener('change', () => generate());
-  meterSelect.addEventListener('change', () => generate());
+  typeSelect.addEventListener('change', () => generate());
   $('generate').addEventListener('click', () => generate());
   $('print').addEventListener('click', () => window.print());
-  $('chords-on').addEventListener('change', loadAudio);
+  $('chords-on').addEventListener('click', () => {
+    const b = $('chords-on'); b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') === 'true' ? 'false' : 'true'); loadAudio();
+  });
   $('copy-link').addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(location.href);
@@ -303,7 +312,7 @@
   if (fromUrl.chords) chordsInput.value = fromUrl.chords;
   if (fromUrl.melody) melodyInput.value = fromUrl.melody;
   keySelect.value = fromUrl.key;
-  meterSelect.value = fromUrl.meter;
+  typeSelect.value = fromUrl.type;
   updateLevelText();
   generate(fromUrl.seed);
 })();

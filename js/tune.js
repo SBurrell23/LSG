@@ -70,15 +70,38 @@ const Tune = (() => {
     ];
   }
 
-  // ---- Tempo / feel ---------------------------------------------------------------
-  function feel(rng, level, meter) {
-    if (meter === '3/4') {
-      return level >= 6 ? rng.pick([['Jazz Waltz', 132, 176], ['Slow Waltz', 84, 108]]) : ['Waltz', 96, 126];
-    }
-    if (level <= 3) return rng.pick([['Ballad', 60, 76], ['Medium', 88, 108], ['Bossa Nova', 96, 116]]);
-    if (level <= 5) return rng.pick([['Medium Swing', 108, 132], ['Bossa Nova', 108, 130], ['Ballad', 58, 72], ['Medium', 92, 112]]);
-    if (level <= 8) return rng.pick([['Medium Swing', 116, 150], ['Bossa Nova', 116, 140], ['Ballad', 58, 72], ['Latin', 126, 156], ['Funk', 92, 108]]);
-    return rng.pick([['Medium Swing', 120, 152], ['Medium-Up Swing', 148, 172], ['Bossa Nova', 120, 148], ['Ballad', 56, 70], ['Latin', 130, 160], ['Funk', 94, 112], ['Samba', 150, 180]]);
+  // ---- Song types (feel + time signature + tempo range) --------------------------
+  // minLevel: the type only comes up at random from that (average) level;
+  // w: weight for the random pick.
+  const TYPES = [
+    { name: 'Ballad',          meter: '4/4', tempo: [56, 76],   minLevel: 1, w: 3 },
+    { name: 'Medium',          meter: '4/4', tempo: [88, 112],  minLevel: 1, w: 3 },
+    { name: 'Bossa Nova',      meter: '4/4', tempo: [96, 140],  minLevel: 1, w: 3 },
+    { name: 'Medium Swing',    meter: '4/4', tempo: [108, 152], minLevel: 4, w: 4 },
+    { name: 'Medium-Up Swing', meter: '4/4', tempo: [148, 176], minLevel: 9, w: 2 },
+    { name: 'Latin',           meter: '4/4', tempo: [120, 156], minLevel: 6, w: 2 },
+    { name: 'Funk',            meter: '4/4', tempo: [90, 112],  minLevel: 6, w: 2 },
+    { name: 'Waltz',           meter: '3/4', tempo: [96, 126],  minLevel: 3, w: 1.2 },
+    { name: 'Slow Waltz',      meter: '3/4', tempo: [80, 104],  minLevel: 3, w: 0.8 },
+    { name: 'Jazz Waltz',      meter: '3/4', tempo: [132, 176], minLevel: 7, w: 1 },
+    { name: 'Samba',           meter: '2/4', tempo: [92, 116],  minLevel: 5, w: 0.5 },
+    { name: 'Ragtime',         meter: '2/4', tempo: [76, 100],  minLevel: 4, w: 0.5 },
+    { name: 'Polka',           meter: '2/4', tempo: [100, 124], minLevel: 3, w: 0.3 },
+    { name: 'March',           meter: '2/4', tempo: [100, 120], minLevel: 2, w: 0.3 },
+    { name: 'Tango',           meter: '2/4', tempo: [62, 78],   minLevel: 5, w: 0.4 },
+  ];
+  const typeByName = name => TYPES.find(t => t.name === name) || null;
+
+  function pickType(rng, level) {
+    const pool = TYPES.filter(t => level >= t.minLevel).map(t => [t, t.w]);
+    return rng.weighted(pool);
+  }
+
+  // Lower levels sit in the slower part of a type's range.
+  function tempoFor(rng, level, type) {
+    const [lo, hi] = type.tempo;
+    const span = 0.45 + 0.55 * (level - 1) / 9;
+    return Math.round((lo + (hi - lo) * span * rng.next()) / 2) * 2;
   }
 
   // ---- Titles ------------------------------------------------------------------
@@ -214,12 +237,20 @@ const Tune = (() => {
 
   function moodFor(feelName, meter) {
     if (meter === '3/4') return 'waltz';
-    if (/Ballad/.test(feelName)) return 'slow';
-    if (/Swing/.test(feelName)) return 'swing';
+    if (/Ballad|Tango/.test(feelName)) return 'slow';
+    if (/Swing|Ragtime|Polka|March/.test(feelName)) return 'swing';
     if (/Bossa|Latin|Samba/.test(feelName)) return 'latin';
     if (/Funk/.test(feelName)) return 'funk';
     return 'medium';
   }
+  // Some types like to say what they are in the title.
+  const TYPE_TEMPLATES = {
+    Ragtime: [['{Adj} Rag', 4], ['{Noun} Rag', 4], ["{Name}'s Rag", 3], ['Rag for {OddName}', 1], ['The {Adj} {Noun} Rag', 2]],
+    Polka:   [['{Adj} Polka', 4], ["{Name}'s Polka", 3], ['Polka for {OddName}', 1], ['{Noun} Polka', 3]],
+    March:   [['March of the {Nouns}', 4], ['{Adj} March', 3], ["{Name}'s March", 2], ['March to {Street}', 2]],
+    Tango:   [['Tango for {Name}', 4], ['{Adj} Tango', 4], ['Tango at {Time}', 2], ['Last Tango on {Street}', 1]],
+    Samba:   [['Samba for {Name}', 3], ['{Adj} Samba', 3], ['Samba in {Place}', 2]],
+  };
 
   function makeTitle(rng, meter, feelName, mode) {
     const mood = moodFor(feelName, meter);
@@ -231,7 +262,8 @@ const Tune = (() => {
     }
     // Slow waltzes lean on the ballad vocabulary.
     if (mood === 'waltz' && /Slow/.test(feelName)) { adj = adj.concat(POOLS.slow.adj); noun = noun.concat(POOLS.slow.noun); }
-    const template = rng.weighted(pool.templates);
+    const special = TYPE_TEMPLATES[feelName];
+    const template = special && rng.chance(0.55) ? rng.weighted(special) : rng.weighted(pool.templates);
     const used = new Set();
     const pickFresh = list => {
       let w = rng.pick(list), tries = 0;
@@ -304,6 +336,7 @@ const Tune = (() => {
     lines.push('L:1/16');
     lines.push('Q:"' + feelName + '" 1/4=' + tempo);
     lines.push('K:' + key.abc);
+    const barsPerLine = meter === '2/4' ? 8 : 4;
 
     // Flatten events for prev/next lookups.
     const flat = [];
@@ -340,7 +373,7 @@ const Tune = (() => {
         const lastBarOfTune = si === sections.length - 1 && b === sec.bars.length - 1;
         const lastBarOfSection = b === sec.bars.length - 1;
         line += lastBarOfTune ? ' |]' : lastBarOfSection ? ' ||' : ' |';
-        if ((b + 1) % 4 === 0 || lastBarOfSection) { lines.push(line); line = ''; }
+        if ((b + 1) % barsPerLine === 0 || lastBarOfSection) { lines.push(line); line = ''; }
         else line += ' ';
       });
       if (keyChanged && si < sections.length - 1 && sections[si + 1].key.name === key.name) lines.push('K:' + key.abc);
@@ -367,16 +400,16 @@ const Tune = (() => {
       const [mode, name] = rng.pick(keyPool(chordsLevel));
       key = makeKey(name, mode);
     }
-    const meter = opts.meter === '3/4' || opts.meter === '4/4'
-      ? opts.meter
-      : (Math.max(chordsLevel, melodyLevel) >= 3 && rng.chance(0.2) ? '3/4' : '4/4');
-    const barLen = meter === '3/4' ? 12 : 16;
+    const avgLevel = Math.round((chordsLevel + melodyLevel) / 2);
+    const type = typeByName(opts.type) || pickType(rng, avgLevel);
+    const meter = type.meter;
+    const feelName = type.name;
+    const barLen = meter === '3/4' ? 12 : meter === '2/4' ? 8 : 16;
 
     const form = makeForm(rng, chordsLevel, key);
     const harmony = Harmony.generate(rng, chordsLevel, form, meter);
     const sections = Melody.generate(rng, melodyLevel, harmony, form, barLen, key);
-    const [feelName, tLo, tHi] = feel(rng, Math.round((chordsLevel + melodyLevel) / 2), meter);
-    const tempo = Math.round(rng.int(tLo, tHi) / 2) * 2;
+    const tempo = tempoFor(rng, avgLevel, type);
     const title = makeTitle(rng, meter, feelName, key.mode);
     const level = Math.max(chordsLevel, melodyLevel);
     const tune = { title, level, chordsLevel, melodyLevel, seed, meter, key, tempo, feelName, sections, form };
@@ -384,5 +417,5 @@ const Tune = (() => {
     return tune;
   }
 
-  return { generate, LEVELS, toAbc };
+  return { generate, LEVELS, TYPES, toAbc };
 })();

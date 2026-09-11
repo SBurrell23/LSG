@@ -55,12 +55,8 @@
             <select id="key-select"><option value="">Random</option></select>
           </label>
           <label class="option">
-            <span>Time</span>
-            <select id="meter-select">
-              <option value="">Random</option>
-              <option value="4/4">4/4</option>
-              <option value="3/4">3/4</option>
-            </select>
+            <span>Type</span>
+            <select id="type-select"><option value="">Random</option></select>
           </label>
         </div>
 
@@ -73,12 +69,13 @@
       <details class="panel collapsible" id="panel-play" open>
         <summary><h2>Play along</h2><span class="chev" aria-hidden="true"></span></summary>
         <div class="panel-body">
-          <p class="hint">Piano melody with the chords underneath. The note being played lights up on the sheet.</p>
           <div class="audio-row">
             <div id="audio" class="audio"></div>
             <button id="tempo-btn" class="tempo-btn" type="button" title="Change playback tempo">♩ = <span id="tempo-value">120</span></button>
           </div>
-          <label class="check"><input id="chords-on" type="checkbox" checked> Play chord accompaniment</label>
+          <button id="chords-on" class="tempo-btn toggle-btn" type="button" aria-pressed="true">
+            <span class="tick" aria-hidden="true"></span> Chord accompaniment
+          </button>
         </div>
       </details>
 
@@ -135,9 +132,7 @@
       <div class="tempo-body">
         <div class="tempo-readout"><span id="tempo-big">120</span><small>BPM</small></div>
         <div class="tempo-controls">
-          <button id="tempo-minus" class="btn tempo-nudge" type="button" aria-label="Slower by 2 BPM">−</button>
           <input id="tempo-slider" type="range" min="50" max="250" step="1" value="120" aria-label="Tempo in beats per minute">
-          <button id="tempo-plus" class="btn tempo-nudge" type="button" aria-label="Faster by 2 BPM">+</button>
         </div>
         <div class="tempo-scale" aria-hidden="true"><span>50</span><span>100</span><span>150</span><span>200</span><span>250</span></div>
         <div class="row">
