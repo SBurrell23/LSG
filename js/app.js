@@ -33,7 +33,7 @@
     // Song types grouped by time signature.
     for (const meter of ['4/4', '3/4', '2/4', '6/8']) {
       const g = document.createElement('optgroup'); g.label = meter;
-      for (const t of Tune.TYPES.filter(t => t.meter === meter)) {
+      for (const t of Tune.STYLES.filter(t => t.meter === meter)) {
         const o = document.createElement('option'); o.value = t.name; o.textContent = t.name; g.appendChild(o);
       }
       typeSelect.appendChild(g);
@@ -139,9 +139,9 @@
     const melody = clampLevel(p.get('melody')) || legacy;
     const seed = parseInt(p.get('seed'), 10);
     const key = p.get('key') || '';
-    const type = p.get('type') || '';
+    const type = p.get('style') || p.get('type') || '';
     const keyOk = [...keySelect.options].some(o => o.value === key) ? key : '';
-    const typeOk = Tune.TYPES.some(t => t.name === type) ? type : '';
+    const typeOk = Tune.STYLES.some(t => t.name === type) ? type : '';
     return { chords, melody, seed: Number.isFinite(seed) ? seed >>> 0 : null, key: keyOk, type: typeOk };
   }
 
@@ -152,7 +152,7 @@
     url.searchParams.set('melody', t.melodyLevel);
     url.searchParams.set('seed', t.seed);
     if (keySelect.value) url.searchParams.set('key', keySelect.value);
-    if (typeSelect.value) url.searchParams.set('type', typeSelect.value);
+    if (typeSelect.value) url.searchParams.set('style', typeSelect.value);
     history.replaceState(null, '', url);
   }
 
@@ -171,7 +171,7 @@
 
   const onSliderInput = () => updateLevelText();
 
-  // ---- song-type gallery (modal of tiles) ----
+  // ---- song-style gallery (modal of tiles) ----
   const typeModal = $('type-modal');
   const tileTip = $('tile-tip');
   function showTileTip(tile, t) {
@@ -195,7 +195,7 @@
     // Within each time signature, slowest on the left, fastest on the right.
     const avgTempo = t => (t.tempo[0] + t.tempo[1]) / 2;
     for (const meter of ['4/4', '3/4', '2/4', '6/8']) {
-      groups.push([meter, Tune.TYPES.filter(t => t.meter === meter).sort((a, b) => avgTempo(a) - avgTempo(b)).map(t => ({ ...t, value: t.name }))]);
+      groups.push([meter, Tune.STYLES.filter(t => t.meter === meter).sort((a, b) => avgTempo(a) - avgTempo(b)).map(t => ({ ...t, value: t.name }))]);
     }
     for (const [label, list] of groups) {
       const g = document.createElement('section'); g.className = 'type-group';
@@ -224,7 +224,7 @@
     }
   }
   function syncTypeButton() {
-    const t = Tune.TYPES.find(x => x.name === typeSelect.value);
+    const t = Tune.STYLES.find(x => x.name === typeSelect.value);
     $('type-btn-label').textContent = t ? t.name : 'Random';
     $('type-btn-icon').innerHTML = TypeIcons.svg(t ? t.name : 'Random');
     $('type-grid').querySelectorAll('.tile').forEach(tile => tile.setAttribute('aria-checked', tile.dataset.value === typeSelect.value ? 'true' : 'false'));
@@ -373,7 +373,7 @@
     if (i >= 0) list.splice(i, 1);
     else list.unshift({
       id: sheetId(current), title: current.title, chords: current.chordsLevel, melody: current.melodyLevel,
-      seed: current.seed, key: keySelect.value || '', type: typeSelect.value || '',
+      seed: current.seed, key: keySelect.value || '', style: typeSelect.value || '',
       keyName: pretty(current.key.name.replace(/m$/, '')) + (current.key.mode === 'minor' ? ' minor' : ' major'),
       time: current.meter, feel: current.feelName, tempo: current.tempo, savedAt: Date.now(),
     });
@@ -383,7 +383,7 @@
 
   function loadSaved(entry) {
     chordsInput.value = entry.chords; melodyInput.value = entry.melody;
-    keySelect.value = entry.key || ''; typeSelect.value = entry.type || '';
+    keySelect.value = entry.key || ''; typeSelect.value = entry.style || entry.type || '';
     syncDropdowns(); syncTypeButton();
     updateLevelText();
     closeModal();
@@ -419,7 +419,7 @@
   function generate(seed) {
     const chords = parseInt(chordsInput.value, 10);
     const melody = parseInt(melodyInput.value, 10);
-    const opts = { chords, melody, seed: seed == null ? randomSeed() : seed, key: keySelect.value || null, type: typeSelect.value || null };
+    const opts = { chords, melody, seed: seed == null ? randomSeed() : seed, key: keySelect.value || null, style: typeSelect.value || null };
     try {
       current = Tune.generate(opts);
     } catch (err) {

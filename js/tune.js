@@ -78,7 +78,7 @@ const Tune = (() => {
     ];
   }
 
-  // ---- Song types ----------------------------------------------------------------
+  // ---- Song styles ----------------------------------------------------------------
   // Each type carries:
   //   meter     time signature (drives bar length and layout)
   //   tempo     BPM range; lower levels sit in the slower part of it
@@ -91,123 +91,127 @@ const Tune = (() => {
   //   harmony   harmony profile (see Harmony.generate):
   //               triads, dominant, rate, form, mult { secondary, borrowed, passingDim, tritone, slash, sus }
   //   extraPcs  extra melody colour tones as semitones above the tonic (blue notes)
-  const TYPES = [
+  //   gchord    play-along accompaniment pattern for abcjs (%%MIDI gchord). One
+  //             character per eighth note of the bar: f = bass note, c = chord,
+  //             b = bass + chord together, z = silence. Every hit is one eighth
+  //             long (abcjs cannot sustain), always on the default piano.
+  const STYLES = [
     // ---------------------------------------------------------------- 4/4
-    { name: 'Ballad', meter: '4/4', tempo: [56, 76], minLevel: 1, w: 3,
+    { name: 'Ballad', gchord: 'bzzzbzzz', meter: '4/4', tempo: [56, 76], minLevel: 1, w: 3,
       desc: 'Slow and lyrical. Long notes with room to breathe, gentle sevenths, few surprises.',
       rhythm: { l: 1.8, q: 1.2, e: 0.8, s: 0.5, x: 0.5, t: 1.2 },
       harmony: { mult: { secondary: 0.8, borrowed: 1.2, passingDim: 0.8, tritone: 0.6, slash: 1.3, sus: 1.0 } } },
-    { name: 'Medium', meter: '4/4', tempo: [88, 112], minLevel: 1, w: 3,
+    { name: 'Medium', gchord: 'fzczfzcz', meter: '4/4', tempo: [88, 112], minLevel: 1, w: 3,
       desc: 'Straight-ahead medium groove. Even mix of note values, standard functional harmony.',
       rhythm: {}, harmony: {} },
-    { name: 'Rock Ballad', meter: '4/4', tempo: [64, 84], minLevel: 1, w: 2,
+    { name: 'Rock Ballad', gchord: 'bzczbzcz', meter: '4/4', tempo: [64, 84], minLevel: 1, w: 2,
       desc: 'Slow pop/rock. Plain triads, sus and slash chords, borrowed IV/♭VII; simple sustained melody.',
       rhythm: { l: 1.5, q: 1.4, e: 1.0, s: 0.5, t: 0.4, x: 0.4 },
       harmony: { triads: true, mult: { secondary: 0.3, borrowed: 1.6, passingDim: 0, tritone: 0, slash: 1.6, sus: 1.4 } } },
-    { name: 'Blues', meter: '4/4', tempo: [72, 116], minLevel: 1, w: 2.5,
+    { name: 'Blues', gchord: 'fcfcfcfc', meter: '4/4', tempo: [72, 116], minLevel: 1, w: 2.5,
       desc: '12-bar blues form. Dominant 7ths on I, IV and V, shuffle triplets; blue notes and a jazz-blues turnaround at higher levels.',
       rhythm: { t: 1.6, e: 1.2, l: 1.0, s: 1.0, x: 0.5 },
       harmony: { form: 'blues', dominant: true, mult: { tritone: 1.0, sus: 0.5 } }, extraPcs: [3, 6, 10] },
-    { name: 'Boogie-Woogie', meter: '4/4', tempo: [120, 160], minLevel: 3, w: 1.2,
+    { name: 'Boogie-Woogie', gchord: 'fcfcfcfc', meter: '4/4', tempo: [120, 160], minLevel: 3, w: 1.2,
       desc: 'Fast 12-bar blues with a driving shuffle. Dominant 7ths throughout, busy repeated eighth-note figures.',
       rhythm: { e: 1.6, t: 1.2, q: 1.0, l: 0.6, x: 0.4, s: 0.9 },
       harmony: { form: 'blues', dominant: true, mult: { tritone: 0.5, sus: 0.3 } }, extraPcs: [3, 10] },
-    { name: 'Gospel', meter: '4/4', tempo: [60, 80], minLevel: 4, w: 1.2,
+    { name: 'Gospel', gchord: 'bzzbzzbz', meter: '4/4', tempo: [60, 80], minLevel: 4, w: 1.2,
       desc: 'Slow 12/8 feel written with triplets. Rich sevenths, walking slash-bass chords (I/3, IV/5) and passing diminished chords.',
       rhythm: { t: 2.2, l: 1.4, e: 0.8, x: 0.4, s: 0.8 },
       harmony: { mult: { secondary: 1.2, borrowed: 0.8, passingDim: 1.8, tritone: 0.3, slash: 2.0, sus: 1.2 } }, extraPcs: [3] },
-    { name: 'Bossa Nova', meter: '4/4', tempo: [96, 140], minLevel: 1, w: 3,
+    { name: 'Bossa Nova', gchord: 'fzcfzczc', meter: '4/4', tempo: [96, 140], minLevel: 1, w: 3,
       desc: 'Gentle Brazilian groove. Syncopated, off-beat melody over smooth maj7 and m7 chords with some ♭VI colour.',
       rhythm: { s: 2.0, e: 1.2, l: 0.8, d: 0.7, t: 0.3, q: 0.8 },
       harmony: { mult: { secondary: 1.0, borrowed: 1.3, passingDim: 0.6, tritone: 1.2, slash: 0.6, sus: 0.8 } } },
-    { name: 'Medium Swing', meter: '4/4', tempo: [108, 152], minLevel: 4, w: 4,
+    { name: 'Medium Swing', gchord: 'fzcfzzcz', meter: '4/4', tempo: [108, 152], minLevel: 4, w: 4,
       desc: 'Classic jazz swing. Eighth-note lines and triplets, ii–V chains, turnarounds and substitutions.',
       rhythm: { e: 1.5, t: 1.3, s: 1.2, l: 0.7, x: 0.5, d: 0.4 },
       harmony: { mult: { secondary: 1.3, borrowed: 1.0, passingDim: 1.0, tritone: 1.3, slash: 0.7, sus: 1.0 } } },
-    { name: 'Medium-Up Swing', meter: '4/4', tempo: [148, 176], minLevel: 9, w: 2,
+    { name: 'Medium-Up Swing', gchord: 'fcfcfcfc', meter: '4/4', tempo: [148, 176], minLevel: 9, w: 2,
       desc: 'Brisk swing. Longer eighth-note runs, dense ii–Vs and tritone substitutions.',
       rhythm: { e: 1.8, t: 1.2, s: 1.2, l: 0.5, x: 0.4, d: 0.3 },
       harmony: { mult: { secondary: 1.4, borrowed: 0.9, passingDim: 1.0, tritone: 1.5, slash: 0.6, sus: 0.8 } } },
-    { name: 'Latin', meter: '4/4', tempo: [120, 156], minLevel: 6, w: 2,
+    { name: 'Latin', gchord: 'fczcfczc', meter: '4/4', tempo: [120, 156], minLevel: 6, w: 2,
       desc: 'Straight-eighth Latin groove. Heavily syncopated melody, sixteenth figures, tight m7 and 7 harmony.',
       rhythm: { s: 1.8, x: 1.2, e: 1.2, l: 0.7, t: 0.3 },
       harmony: { mult: { secondary: 1.0, borrowed: 1.2, passingDim: 0.6, tritone: 1.0, slash: 0.6, sus: 1.2 } } },
-    { name: 'Funk', meter: '4/4', tempo: [90, 112], minLevel: 6, w: 2,
+    { name: 'Funk', gchord: 'fzzczfzc', meter: '4/4', tempo: [90, 112], minLevel: 6, w: 2,
       desc: 'Sixteenth-note funk. Short stabs and rests, off-beat accents, dominant 7ths that sit for a long time.',
       rhythm: { x: 2.0, s: 1.6, r: 1.6, l: 0.5, t: 0.3, q: 0.6 },
       harmony: { dominant: true, rate: 0.5, mult: { secondary: 0.3, borrowed: 0.3, passingDim: 0, tritone: 0, slash: 0.4, sus: 1.5 } }, extraPcs: [3, 10] },
-    { name: 'Reggae', meter: '4/4', tempo: [70, 92], minLevel: 3, w: 1.5,
+    { name: 'Reggae', gchord: 'zczczczc', meter: '4/4', tempo: [70, 92], minLevel: 3, w: 1.5,
       desc: 'Laid-back one drop. Off-beat entries and rests in the melody, simple m7 and triad harmony that stays put.',
       rhythm: { r: 1.6, s: 1.6, e: 1.0, l: 0.8, t: 0.3, x: 0.5 },
       harmony: { rate: 0.6, mult: { secondary: 0.3, borrowed: 0.8, passingDim: 0, tritone: 0, slash: 0.5, sus: 0.6 } } },
-    { name: 'Stride', meter: '4/4', tempo: [140, 190], minLevel: 6, w: 1.2,
+    { name: 'Stride', gchord: 'fcfcfcfc', meter: '4/4', tempo: [140, 190], minLevel: 6, w: 1.2,
       desc: 'Harlem stride piano. Bouncy quarter and dotted rhythms, secondary dominants and passing diminished chords everywhere.',
       rhythm: { q: 1.4, e: 1.2, d: 1.2, s: 0.9, l: 0.8, t: 0.6, x: 0.5 },
       harmony: { mult: { secondary: 1.6, borrowed: 0.8, passingDim: 1.8, tritone: 0.5, slash: 1.2, sus: 0.4 } } },
     // ---------------------------------------------------------------- 3/4
-    { name: 'Waltz', meter: '3/4', tempo: [96, 126], minLevel: 3, w: 1.2,
+    { name: 'Waltz', gchord: 'fzczcz', meter: '3/4', tempo: [96, 126], minLevel: 3, w: 1.2,
       desc: 'Flowing waltz in three. Quarter-note and long-note melody, light dotted figures, little syncopation.',
       rhythm: { q: 1.4, l: 1.3, e: 0.8, s: 0.4, x: 0.4, d: 1.1 },
       harmony: { mult: { secondary: 1.0, borrowed: 0.8, passingDim: 0.8, tritone: 0.5, slash: 1.0, sus: 0.6 } } },
-    { name: 'Slow Waltz', meter: '3/4', tempo: [80, 104], minLevel: 3, w: 0.8,
+    { name: 'Slow Waltz', gchord: 'fzczzz', meter: '3/4', tempo: [80, 104], minLevel: 3, w: 0.8,
       desc: 'Slow, sentimental waltz. Mostly long notes, gentle harmony.',
       rhythm: { l: 1.8, q: 1.2, e: 0.7, s: 0.3, x: 0.3 },
       harmony: { mult: { secondary: 0.8, borrowed: 1.0, passingDim: 0.6, tritone: 0.4, slash: 1.2, sus: 0.8 } } },
-    { name: 'Jazz Waltz', meter: '3/4', tempo: [132, 176], minLevel: 7, w: 1,
+    { name: 'Jazz Waltz', gchord: 'fzczzc', meter: '3/4', tempo: [132, 176], minLevel: 7, w: 1,
       desc: 'Quick jazz waltz. Eighth-note lines, syncopation across the bar, ii–Vs and substitutions.',
       rhythm: { e: 1.3, s: 1.2, t: 1.0, l: 0.8, x: 0.6 },
       harmony: { mult: { secondary: 1.3, borrowed: 1.0, passingDim: 1.0, tritone: 1.2, slash: 0.7, sus: 1.0 } } },
-    { name: 'Minuet', meter: '3/4', tempo: [100, 124], minLevel: 2, w: 0.7,
+    { name: 'Minuet', gchord: 'fzczcz', meter: '3/4', tempo: [100, 124], minLevel: 2, w: 0.7,
       desc: 'Stately classical dance in three. Even quarters and eighths, clear two-bar phrases, triads with V7 and the occasional V of V.',
       rhythm: { q: 1.5, e: 1.2, d: 0.9, l: 0.9, s: 0.2, x: 0.3, t: 0.1, r: 0.6 },
       harmony: { triads: true, mult: { secondary: 0.9, borrowed: 0.2, passingDim: 0.3, tritone: 0, slash: 1.0, sus: 0.2 } } },
-    { name: 'Country Waltz', meter: '3/4', tempo: [84, 112], minLevel: 2, w: 0.8,
+    { name: 'Country Waltz', gchord: 'fzczcz', meter: '3/4', tempo: [84, 112], minLevel: 2, w: 0.8,
       desc: 'Old-time country waltz. Plain triads with V7, an occasional V of V, simple singable melody.',
       rhythm: { q: 1.6, l: 1.4, e: 0.7, s: 0.2, d: 1.0, x: 0.2, t: 0.2 },
       harmony: { triads: true, mult: { secondary: 0.6, borrowed: 0, passingDim: 0, tritone: 0, slash: 0.6, sus: 0.3 } } },
     // ---------------------------------------------------------------- 2/4
-    { name: 'Samba', meter: '2/4', tempo: [92, 116], minLevel: 5, w: 0.5,
+    { name: 'Samba', gchord: 'fczc', meter: '2/4', tempo: [92, 116], minLevel: 5, w: 0.5,
       desc: 'Brazilian samba in 2/4. Sixteenth-note syncopation, bright maj7 and 7 harmony.',
       rhythm: { x: 1.6, s: 1.8, e: 1.0, l: 0.5, t: 0.2 },
       harmony: { mult: { secondary: 1.0, borrowed: 1.2, passingDim: 0.5, tritone: 1.0, slash: 0.6, sus: 0.8 } } },
-    { name: 'Ragtime', meter: '2/4', tempo: [76, 100], minLevel: 4, w: 0.5,
+    { name: 'Ragtime', gchord: 'fcfc', meter: '2/4', tempo: [76, 100], minLevel: 4, w: 0.5,
       desc: 'Classic rag in 2/4. Sixteenth-note syncopation over an oom-pah bass, triads with plenty of secondary dominants and diminished chords.',
       rhythm: { x: 1.8, s: 1.6, d: 1.0, e: 1.0, l: 0.5, t: 0.1 },
       harmony: { triads: true, mult: { secondary: 1.8, borrowed: 0.4, passingDim: 1.2, tritone: 0, slash: 0.8, sus: 0.2 } } },
-    { name: 'Polka', meter: '2/4', tempo: [100, 124], minLevel: 3, w: 0.3,
+    { name: 'Polka', gchord: 'fcfc', meter: '2/4', tempo: [100, 124], minLevel: 3, w: 0.3,
       desc: 'Bouncy polka. Running eighths and quarters, triads with V7 and V of V, hardly any syncopation.',
       rhythm: { e: 1.6, q: 1.2, x: 0.9, s: 0.3, l: 0.5, t: 0.1 },
       harmony: { triads: true, mult: { secondary: 1.2, borrowed: 0.2, passingDim: 0.3, tritone: 0, slash: 0.5, sus: 0.2 } } },
-    { name: 'March', meter: '2/4', tempo: [100, 120], minLevel: 2, w: 0.3,
+    { name: 'March', gchord: 'fcfc', meter: '2/4', tempo: [100, 120], minLevel: 2, w: 0.3,
       desc: 'Military march. Dotted-eighth–sixteenth figures and firm quarters, triads with V7 and V of V.',
       rhythm: { d: 2.0, q: 1.4, e: 1.0, s: 0.3, l: 0.8, t: 0.2 },
       harmony: { triads: true, mult: { secondary: 1.2, borrowed: 0.2, passingDim: 0.3, tritone: 0, slash: 0.6, sus: 0.2 } } },
-    { name: 'Tango', meter: '2/4', tempo: [62, 78], minLevel: 5, w: 0.4,
+    { name: 'Tango', gchord: 'fzcc', meter: '2/4', tempo: [62, 78], minLevel: 5, w: 0.4,
       desc: 'Dramatic tango. Dotted and habanera rhythms, sharp sixteenths, minor-leaning harmony with V7♭9.',
       rhythm: { d: 1.8, h: 2.0, x: 1.2, q: 1.0, s: 1.0, l: 0.9, t: 0.1 },
       harmony: { mult: { secondary: 1.2, borrowed: 1.0, passingDim: 1.0, tritone: 0.6, slash: 0.8, sus: 0.4 } } },
-    { name: 'Habanera', meter: '2/4', tempo: [60, 76], minLevel: 4, w: 0.4,
+    { name: 'Habanera', gchord: 'fzcc', meter: '2/4', tempo: [60, 76], minLevel: 4, w: 0.4,
       desc: 'Cuban habanera. The dotted-eighth, sixteenth, two-eighths bass figure under a slow, sultry melody.',
       rhythm: { h: 3.0, d: 1.5, l: 1.0, q: 1.0, s: 1.0, e: 0.8, t: 0.1 },
       harmony: { mult: { secondary: 1.0, borrowed: 1.0, passingDim: 0.8, tritone: 0.4, slash: 0.8, sus: 0.3 } } },
     // ---------------------------------------------------------------- 6/8
-    { name: '6/8 Ballad', meter: '6/8', tempo: [50, 66], minLevel: 2, w: 0.8,
+    { name: '6/8 Ballad', gchord: 'fzzczz', meter: '6/8', tempo: [50, 66], minLevel: 2, w: 0.8,
       desc: 'Slow 6/8 with a gentle rocking pulse. Long dotted-quarter notes and lilting quarter–eighth figures.',
       rhythm: { l: 1.6, q: 1.2, d: 1.2, e: 0.8, s: 0.4, x: 0.3 },
       harmony: { mult: { secondary: 0.8, borrowed: 1.0, passingDim: 0.6, tritone: 0.4, slash: 1.3, sus: 0.8 } } },
-    { name: 'Jig', meter: '6/8', tempo: [104, 128], minLevel: 3, w: 0.6,
+    { name: 'Jig', gchord: 'fzcfzc', meter: '6/8', tempo: [104, 128], minLevel: 3, w: 0.6,
       desc: 'Lively jig. Running groups of three eighths over plain triads, little syncopation.',
       rhythm: { e: 1.8, d: 1.0, q: 0.8, l: 0.4, s: 0.3, x: 0.4 },
       harmony: { triads: true, mult: { secondary: 0.4, borrowed: 0.3, passingDim: 0, tritone: 0, slash: 0.5, sus: 0.2 } } },
-    { name: 'Tarantella', meter: '6/8', tempo: [126, 150], minLevel: 6, w: 0.5,
+    { name: 'Tarantella', gchord: 'fzcfzc', meter: '6/8', tempo: [126, 150], minLevel: 6, w: 0.5,
       desc: 'Fast Italian tarantella. Relentless eighth notes in threes, often in minor, over simple harmony.',
       rhythm: { e: 2.0, q: 0.6, l: 0.3, x: 0.6, r: 0.4, s: 0.3 },
       harmony: { triads: true, mult: { secondary: 0.6, borrowed: 0.4, passingDim: 0, tritone: 0, slash: 0.4, sus: 0.2 } } },
   ];
-  const typeByName = name => TYPES.find(t => t.name === name) || null;
+  const styleByName = name => STYLES.find(t => t.name === name) || null;
 
-  function pickType(rng, level) {
-    const pool = TYPES.filter(t => level >= t.minLevel).map(t => [t, t.w]);
+  function pickStyle(rng, level) {
+    const pool = STYLES.filter(t => level >= t.minLevel).map(t => [t, t.w]);
     return rng.weighted(pool);
   }
 
@@ -462,6 +466,7 @@ const Tune = (() => {
     lines.push('L:1/16');
     // 6/8 tempos count dotted quarters; everything else counts quarters.
     lines.push('Q:"' + feelName + '" ' + (meter === '6/8' ? '3/8=' : '1/4=') + tempo);
+    if (tune.gchord) lines.push('%%MIDI gchord ' + tune.gchord);
     lines.push('K:' + key.abc);
     const barsPerLine = meter === '2/4' ? 8 : 4;
     const beat = meter === '6/8' ? 6 : 4;
@@ -529,7 +534,7 @@ const Tune = (() => {
       key = makeKey(name, mode);
     }
     const avgLevel = Math.round((chordsLevel + melodyLevel) / 2);
-    const type = typeByName(opts.type) || pickType(rng, avgLevel);
+    const type = styleByName(opts.style || opts.type) || pickStyle(rng, avgLevel);
     const meter = type.meter;
     const feelName = type.name;
     const barLen = meter === '3/4' ? 12 : meter === '2/4' ? 8 : meter === '6/8' ? 24 : 16;
@@ -540,10 +545,10 @@ const Tune = (() => {
     const tempo = tempoFor(rng, avgLevel, type);
     const title = makeTitle(rng, meter, feelName, key.mode);
     const level = Math.max(chordsLevel, melodyLevel);
-    const tune = { title, level, chordsLevel, melodyLevel, seed, meter, key, tempo, feelName, sections, form };
+    const tune = { title, level, chordsLevel, melodyLevel, seed, meter, key, tempo, feelName, sections, form, gchord: type.gchord };
     tune.abc = toAbc(tune);
     return tune;
   }
 
-  return { generate, LEVELS, TYPES, toAbc };
+  return { generate, LEVELS, STYLES, toAbc };
 })();
