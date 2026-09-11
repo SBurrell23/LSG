@@ -16,11 +16,17 @@ const Melody = (() => {
     return i + 1 < arr.length ? arr[i] + (arr[i + 1] - arr[i]) * f : arr[i];
   };
   const internalLevel = ui => 1 + (Math.max(1, Math.min(10, ui)) - 1) * (6 / 9);
+  // Melody pitch range by UI level (MIDI numbers, inclusive). Level 5 spans
+  // A3-A5, level 10 G3-C6; levels 1-4 grow into that from C4-D5.
+  const RANGE = {
+    lo: [60, 59, 59, 58, 57, 57, 56, 56, 55, 55],   // C4 B3 B3 Bb3 A3 A3 Ab3 Ab3 G3 G3
+    hi: [74, 76, 77, 79, 81, 81, 82, 83, 83, 84],   // D5 E5 F5 G5 A5 A5 Bb5 B5 B5 C6
+  };
   function params(level) {
     const t = (level - 1) / 6;
     return {
-      lo: Math.round(lerp(60, 55, t)),          // C4 .. G3
-      hi: Math.round(lerp(74, 82, t)),          // D5 .. Bb5
+      lo: Math.round(lerp(60, 55, t)),          // overridden per UI level by RANGE below
+      hi: Math.round(lerp(74, 82, t)),
       leap: Math.round(at([5, 7, 7, 8, 9, 9, 12], level)),
       fillStep: Math.round(at([2, 2, 3, 4, 5, 5, 6], level)),
       pAnchor: lerp(0.9, 0.62, t),
@@ -358,6 +364,8 @@ const Melody = (() => {
   function generate(rng, uiLevel, sections, form, barLen, homeKey, profile = {}) {
     const level = internalLevel(uiLevel);
     const P = params(level);
+    const ui = Math.max(1, Math.min(10, uiLevel | 0));
+    P.lo = RANGE.lo[ui - 1]; P.hi = RANGE.hi[ui - 1];
     const beat = barLen === 24 ? 6 : 4;
     const ctx = { cells: barLen === 24 ? CELLS_68 : CELLS, endings: barLen === 24 ? ENDINGS_68 : ENDINGS,
                   beat, barLen, prof: profile.rhythm || {} };
