@@ -67,6 +67,9 @@ const Theory = (() => {
       if (Math.abs(s.acc) > 1 && Math.abs(fifthsOf(s) - key.centre) > 8) continue;
       let score = Math.abs(fifthsOf(s) - key.centre);
       if (Math.abs(s.acc) === 2) score += 3;
+      // Cb, Fb, E#, B# only when the key signature itself has them (Gb, Cb, F#, C#).
+      if (s.acc !== 0 && (s.letter === 'C' || s.letter === 'F') && s.acc === -1 && keySigAcc(s.letter, key) !== -1) score += 6;
+      if (s.acc !== 0 && (s.letter === 'E' || s.letter === 'B') && s.acc === 1 && keySigAcc(s.letter, key) !== 1) score += 6;
       if (prefer !== 0 && s.acc !== 0) {
         // If the note is chromatic, lean towards the requested direction.
         if (Math.sign(s.acc) === prefer) score -= 3; else score += 1;
@@ -175,6 +178,7 @@ const Theory = (() => {
 
   // Key signature accidental for a letter (0, 1 or -1).
   function keySigAcc(letter, key) {
+    if (key.fifths === undefined) return 0;
     const sharps = ['F', 'C', 'G', 'D', 'A', 'E', 'B'];
     const flats = ['B', 'E', 'A', 'D', 'G', 'C', 'F'];
     if (key.fifths > 0 && sharps.indexOf(letter) < key.fifths) return 1;

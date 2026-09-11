@@ -136,11 +136,13 @@ const Tune = (() => {
   const onBeat = pos => Math.abs(pos - Math.round(pos)) < 1e-6 && Math.round(pos) % 4 === 0;
 
   function toAbc(tune) {
-    const { title, level, seed, meter, key, tempo, feelName, sections, form } = tune;
+    const { title, chordsLevel, melodyLevel, meter, key, tempo, feelName, sections, form } = tune;
     const lines = [];
     lines.push('X:1');
     lines.push('T:' + title);
-    lines.push('C:Level ' + level + ' · ' + LEVELS[level].name);
+    lines.push('C:' + (chordsLevel === melodyLevel
+      ? 'Level ' + chordsLevel + ' · ' + LEVELS[chordsLevel].name
+      : 'Chords ' + chordsLevel + ' · Melody ' + melodyLevel));
     lines.push('M:' + meter);
     lines.push('L:1/16');
     lines.push('Q:"' + feelName + '" 1/4=' + tempo);
@@ -191,20 +193,36 @@ const Tune = (() => {
   }
 
   // ---- Main ------------------------------------------------------------------------
-  function generate(level, seed) {
-    level = Math.max(1, Math.min(10, level | 0));
+  // opts: { chords: 1-10, melody: 1-10, seed, key?: 'Eb' | 'F#m' | null, meter?: '4/4' | '3/4' | null }
+  // (also accepts the older generate(level, seed) form)
+  function generate(opts, seedArg) {
+    if (typeof opts === 'number') opts = { chords: opts, melody: opts, seed: seedArg };
+    const clamp = v => Math.max(1, Math.min(10, (v | 0) || 1));
+    const chordsLevel = clamp(opts.chords);
+    const melodyLevel = clamp(opts.melody);
+    const seed = opts.seed >>> 0;
     const rng = makeRng(seed);
-    const [mode, name] = rng.pick(keyPool(level));
-    const key = makeKey(name, mode);
-    const meter = level >= 3 && rng.chance(0.2) ? '3/4' : '4/4';
+
+    let key;
+    if (opts.key) {
+      key = makeKey(opts.key, /m$/.test(opts.key) ? 'minor' : 'major');
+    } else {
+      const [mode, name] = rng.pick(keyPool(chordsLevel));
+      key = makeKey(name, mode);
+    }
+    const meter = opts.meter === '3/4' || opts.meter === '4/4'
+      ? opts.meter
+      : (Math.max(chordsLevel, melodyLevel) >= 3 && rng.chance(0.2) ? '3/4' : '4/4');
     const barLen = meter === '3/4' ? 12 : 16;
-    const form = makeForm(rng, level, key);
-    const harmony = Harmony.generate(rng, level, form, meter);
-    const sections = Melody.generate(rng, level, harmony, form, barLen, key);
-    const [feelName, tLo, tHi] = feel(rng, level, meter);
+
+    const form = makeForm(rng, chordsLevel, key);
+    const harmony = Harmony.generate(rng, chordsLevel, form, meter);
+    const sections = Melody.generate(rng, melodyLevel, harmony, form, barLen, key);
+    const [feelName, tLo, tHi] = feel(rng, Math.round((chordsLevel + melodyLevel) / 2), meter);
     const tempo = Math.round(rng.int(tLo, tHi) / 2) * 2;
     const title = makeTitle(rng, meter);
-    const tune = { title, level, seed, meter, key, tempo, feelName, sections, form };
+    const level = Math.max(chordsLevel, melodyLevel);
+    const tune = { title, level, chordsLevel, melodyLevel, seed, meter, key, tempo, feelName, sections, form };
     tune.abc = toAbc(tune);
     return tune;
   }
