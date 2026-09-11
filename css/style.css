@@ -107,7 +107,10 @@ input[type=range]::-moz-range-thumb {
 .panel-body { padding-top: 6px; }
 
 .option-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
-.option { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.option { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--muted); position: relative; }
+.tip-type { left: auto; right: 0; width: 290px; font-weight: 400; color: var(--paper); }
+.tip-type::before { left: auto; right: 20px; }
+.option-tip.has-type:hover .tip-type, .option-tip.has-type:focus-within .tip-type { opacity: 1; visibility: visible; transform: translateY(0); }
 .option select {
   font: inherit; font-size: 14px; font-weight: 500; color: var(--ink); padding: 8px 10px;
   border: 1px solid var(--line); border-radius: 10px; background: var(--paper); cursor: pointer;

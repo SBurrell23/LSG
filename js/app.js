@@ -31,7 +31,7 @@
     grp('Major', majors, ' major');
     grp('Minor', minors, ' minor');
     // Song types grouped by time signature.
-    for (const meter of ['4/4', '3/4', '2/4']) {
+    for (const meter of ['4/4', '3/4', '2/4', '6/8']) {
       const g = document.createElement('optgroup'); g.label = meter;
       for (const t of Tune.TYPES.filter(t => t.meter === meter)) {
         const o = document.createElement('option'); o.value = t.name; o.textContent = t.name; g.appendChild(o);
@@ -80,6 +80,13 @@
 
   const onSliderInput = () => updateLevelText();
 
+  // Tooltip on the Type dropdown: describes the selected type's traits.
+  function updateTypeTip() {
+    const t = Tune.TYPES.find(x => x.name === typeSelect.value);
+    $('type-option').classList.toggle('has-type', !!t);
+    if (t) { $('type-tip-name').textContent = t.name + ' · ' + t.meter; $('type-tip-text').textContent = t.desc; }
+  }
+
   // ---- rendering ----
   function render(tune) {
     const sheet = $('sheet');
@@ -105,7 +112,8 @@
     $('abc-source').value = tune.abc;
     $('seed').textContent = tune.seed;
     $('meta-key').textContent = pretty(tune.key.name.replace(/m$/, '')) + (tune.key.mode === 'minor' ? ' minor' : ' major')
-      + ' · ' + tune.meter + ' · ' + tune.feelName + ' ♩=' + tune.tempo;
+      + ' · ' + tune.meter + ' · ' + tune.feelName + (tune.meter === '6/8' ? ' ♩.=' : ' ♩=') + tune.tempo;
+    $('tempo-btn').firstChild.textContent = tune.meter === '6/8' ? '♩. = ' : '♩ = ';
     const letters = tune.form.map(s => s.name).join('');
     const modulates = tune.sections.some(s => s.key.name !== tune.key.name);
     $('meta-form').textContent = totalBars + ' bars, ' + letters + (modulates ? ' (bridge modulates)' : '');
@@ -271,7 +279,7 @@
   chordsInput.addEventListener('change', () => generate());
   melodyInput.addEventListener('change', () => generate());
   keySelect.addEventListener('change', () => generate());
-  typeSelect.addEventListener('change', () => generate());
+  typeSelect.addEventListener('change', () => { updateTypeTip(); generate(); });
   $('generate').addEventListener('click', () => generate());
   $('print').addEventListener('click', () => window.print());
   $('copy-link').addEventListener('click', async () => {
@@ -310,6 +318,7 @@
   if (fromUrl.melody) melodyInput.value = fromUrl.melody;
   keySelect.value = fromUrl.key;
   typeSelect.value = fromUrl.type;
+  updateTypeTip();
   updateLevelText();
   generate(fromUrl.seed);
 })();

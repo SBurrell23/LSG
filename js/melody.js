@@ -33,46 +33,86 @@ const Melody = (() => {
   }
 
   // ---- Rhythm cells --------------------------------------------------------
-  // d: durations (negative = rest, 't' = eighth-note triplet over one beat)
-  // w: weight per level (array index level-1) or function.
+  // Each cell is a small rhythmic figure that fills part of a bar.
+  //   d: durations in 16ths (negative = rest, 't' = eighth-note triplet over one beat)
+  //   w: base weight as a function of the internal level (1..7)
+  //   t: tags used by the per-type rhythm profile (see Tune.TYPES):
+  //        q quarter   e eighths   x sixteenths   t triplet   d dotted figure
+  //        s syncopated / off-beat entry   l long note   r rest   h habanera figure
+  // A type's profile multiplies the weight of every cell that carries a tag,
+  // so a Ballad leans on 'l' cells and a Bossa Nova on 's' cells while the
+  // difficulty level still decides which figures are available at all.
   const CELLS = [
     // one beat
-    { d: [4],          w: l => at([10, 9, 8, 7, 6, 5, 5], l) },
-    { d: [2, 2],       w: l => at([0, 0, 3, 5, 7, 7, 7], l) },
-    { d: [-4],         w: l => l < 4 ? 0 : 0.4 + 0.12 * l },
-    { d: [3, 1],       w: l => l < 5 ? 0 : 1.5 },
-    { d: [1, 3],       w: l => l < 7 ? 0 : 0.8 },
-    { d: [2, 1, 1],    w: l => l < 6 ? 0 : 1.5 + 0.2 * (l - 6) },
-    { d: [1, 1, 2],    w: l => l < 6 ? 0 : 1.5 + 0.2 * (l - 6) },
-    { d: [1, 2, 1],    w: l => l < 7 ? 0 : 1 },
-    { d: [1, 1, 1, 1], w: l => l < 7 ? 0 : 1 },
-    { d: ['t'],        w: l => l < 5 ? 0 : l < 8 ? 1 : 2 },
-    { d: [-2, 2],      w: l => l < 5 ? 0 : 1 + 0.1 * l },
-    { d: [2, -2],      w: l => l < 7 ? 0 : 0.7 },
-    { d: [-1, 3],      w: l => l < 8 ? 0 : 0.5 },
+    { d: [4],          t: 'q',  w: l => at([10, 9, 8, 7, 6, 5, 5], l) },
+    { d: [2, 2],       t: 'e',  w: l => at([0, 0, 3, 5, 7, 7, 7], l) },
+    { d: [-4],         t: 'r',  w: l => l < 4 ? 0 : 0.4 + 0.12 * l },
+    { d: [3, 1],       t: 'd',  w: l => l < 5 ? 0 : 1.5 },
+    { d: [1, 3],       t: 'ds', w: l => l < 7 ? 0 : 0.8 },
+    { d: [2, 1, 1],    t: 'x',  w: l => l < 6 ? 0 : 1.5 + 0.2 * (l - 6) },
+    { d: [1, 1, 2],    t: 'x',  w: l => l < 6 ? 0 : 1.5 + 0.2 * (l - 6) },
+    { d: [1, 2, 1],    t: 'xs', w: l => l < 7 ? 0 : 1 },
+    { d: [1, 1, 1, 1], t: 'x',  w: l => l < 7 ? 0 : 1 },
+    { d: ['t'],        t: 't',  w: l => l < 5 ? 0 : l < 8 ? 1 : 2 },
+    { d: [-2, 2],      t: 'rs', w: l => l < 5 ? 0 : 1 + 0.1 * l },
+    { d: [2, -2],      t: 'r',  w: l => l < 7 ? 0 : 0.7 },
+    { d: [-1, 3],      t: 'rs', w: l => l < 8 ? 0 : 0.5 },
     // two beats
-    { d: [8],          w: l => at([8, 6, 5, 3, 3, 2.5, 2], l) },
-    { d: [6, 2],       w: l => l < 3 ? 0 : l < 4 ? 3 : 4 },
-    { d: [2, 6],       w: l => l < 5 ? 0 : 3 },
-    { d: [2, 4, 2],    w: l => l < 4 ? 0 : l < 6 ? 2 : 4 },
-    { d: [3, 3, 2],    w: l => l < 6 ? 0 : l < 8 ? 2 : 3 },
-    { d: [-2, 6],      w: l => l < 6 ? 0 : 1.5 },
-    { d: [6, -2],      w: l => l < 4 ? 0 : 1 },
-    { d: [4, 2, 2],    w: l => l < 3 ? 0 : 2 },
-    { d: [2, 2, 4],    w: l => l < 3 ? 0 : 2 },
+    { d: [8],          t: 'l',  w: l => at([8, 6, 5, 3, 3, 2.5, 2], l) },
+    { d: [6, 2],       t: 'd',  w: l => l < 3 ? 0 : l < 4 ? 3 : 4 },
+    { d: [2, 6],       t: 's',  w: l => l < 5 ? 0 : 3 },
+    { d: [2, 4, 2],    t: 's',  w: l => l < 4 ? 0 : l < 6 ? 2 : 4 },
+    { d: [3, 3, 2],    t: 's',  w: l => l < 6 ? 0 : l < 8 ? 2 : 3 },
+    { d: [3, 1, 2, 2], t: 'hd', w: l => l < 4 ? 0 : 0.6 },   // habanera: dotted-eighth, sixteenth, two eighths
+    { d: [-2, 6],      t: 'rs', w: l => l < 6 ? 0 : 1.5 },
+    { d: [6, -2],      t: 'dr', w: l => l < 4 ? 0 : 1 },
+    { d: [4, 2, 2],    t: 'e',  w: l => l < 3 ? 0 : 2 },
+    { d: [2, 2, 4],    t: 'e',  w: l => l < 3 ? 0 : 2 },
     // three beats
-    { d: [12],         w: l => l < 2 ? 4 : 2 },
+    { d: [12],         t: 'l',  w: l => l < 2 ? 4 : 2 },
     // whole bar (4/4)
-    { d: [16],         w: l => at([3, 2, 1, 0.6, 0.4, 0.3, 0.2], l) },
-    { d: [3, 3, 2, 3, 3, 2], w: l => l < 7 ? 0 : 1.5 },
-    { d: [3, 3, 2, 4, 4],    w: l => l < 7 ? 0 : 1 },
-    { d: [3, 3, 3, 3, 4],    w: l => l < 8 ? 0 : 0.8 },
-    { d: [2, 4, 4, 4, 2],    w: l => l < 6 ? 0 : 1.5 },
-    { d: [2, 4, 4, 2, 4],    w: l => l < 6 ? 0 : 1 },
-    { d: [6, 6, 4],          w: l => l < 5 ? 0 : 1.5 },
-    { d: [4, 6, 6],          w: l => l < 6 ? 0 : 0.8 },
+    { d: [16],               t: 'l', w: l => at([3, 2, 1, 0.6, 0.4, 0.3, 0.2], l) },
+    { d: [3, 3, 2, 3, 3, 2], t: 's', w: l => l < 7 ? 0 : 1.5 },
+    { d: [3, 3, 2, 4, 4],    t: 's', w: l => l < 7 ? 0 : 1 },
+    { d: [3, 3, 3, 3, 4],    t: 's', w: l => l < 8 ? 0 : 0.8 },
+    { d: [2, 4, 4, 4, 2],    t: 's', w: l => l < 6 ? 0 : 1.5 },
+    { d: [2, 4, 4, 2, 4],    t: 's', w: l => l < 6 ? 0 : 1 },
+    { d: [6, 6, 4],          t: 'd', w: l => l < 5 ? 0 : 1.5 },
+    { d: [4, 6, 6],          t: 'd', w: l => l < 6 ? 0 : 0.8 },
+  ];
+
+  // 6/8 cells. The beat is a dotted quarter (6 sixteenths) so the figures are
+  // built in threes: the lilt of [4,2], running eighths [2,2,2], and so on.
+  const CELLS_68 = [
+    // one beat (dotted quarter)
+    { d: [6],             t: 'q',  w: l => at([8, 7, 6, 5, 4, 4, 4], l) },
+    { d: [2, 2, 2],       t: 'e',  w: l => at([1.5, 3, 4, 6, 7, 7, 7], l) },
+    { d: [4, 2],          t: 'd',  w: l => 3 },
+    { d: [2, 4],          t: 's',  w: l => l < 4 ? 0 : 2 },
+    { d: [-6],            t: 'r',  w: l => l < 4 ? 0 : 0.6 },
+    { d: [-2, 2, 2],      t: 'rs', w: l => l < 5 ? 0 : 1 },
+    { d: [4, -2],         t: 'dr', w: l => l < 4 ? 0 : 0.8 },
+    { d: [1, 1, 2, 2],    t: 'x',  w: l => l < 6 ? 0 : 1 },
+    { d: [2, 1, 1, 2],    t: 'x',  w: l => l < 6 ? 0 : 1 },
+    { d: [2, 2, 1, 1],    t: 'x',  w: l => l < 7 ? 0 : 0.8 },
+    { d: [1, 1, 1, 1, 2], t: 'x',  w: l => l < 7 ? 0 : 0.5 },
+    { d: [3, 3],          t: 'ds', w: l => l < 6 ? 0 : 0.8 },   // duple cross-rhythm
+    // two beats
+    { d: [12],            t: 'l',  w: l => at([6, 5, 4, 2.5, 2, 1.5, 1], l) },
+    { d: [8, 4],          t: 'l',  w: l => l < 3 ? 0 : 1.5 },
+    { d: [4, 8],          t: 's',  w: l => l < 5 ? 0 : 0.8 },
+    { d: [10, 2],         t: 'd',  w: l => l < 4 ? 0 : 1 },
+    // whole bar
+    { d: [24],            t: 'l',  w: l => at([2, 1.5, 1, 0.5, 0.3, 0.2, 0.2], l) },
   ];
   const cellLen = d => d.reduce((a, x) => a + (x === 't' ? 4 : Math.abs(x)), 0);
+
+  // Weight multiplier from a rhythm profile ({ tag: factor }).
+  const profileMult = (tags, prof) => {
+    let m = 1;
+    for (const tag of tags || '') if (prof[tag] !== undefined) m *= prof[tag];
+    return m;
+  };
 
   // Phrase-ending cells, keyed by segment length.
   const ENDINGS = {
@@ -94,6 +134,18 @@ const Melody = (() => {
     ],
     4: [{ d: [4], w: l => 3 }, { d: [2, -2], w: l => l < 5 ? 0 : 1 }, { d: [-2, 2], w: l => l < 7 ? 0 : 0.5 }],
   };
+  const ENDINGS_68 = {
+    24: [
+      { d: [24], w: l => l < 4 ? 4 : 2 }, { d: [18, -6], w: l => 3 }, { d: [12, -12], w: l => 2 },
+      { d: [12, 6, -6], w: l => l < 3 ? 0 : 2 }, { d: [6, 6, 12], w: l => l < 3 ? 0 : 1.5 },
+      { d: [4, 2, 18], w: l => l < 5 ? 0 : 1.5 }, { d: [6, -18], w: l => l < 6 ? 0 : 1 },
+    ],
+    12: [
+      { d: [12], w: l => 3 }, { d: [6, -6], w: l => 2 }, { d: [4, 2, 6], w: l => l < 3 ? 0 : 1.5 },
+      { d: [2, 2, 2, 6], w: l => l < 5 ? 0 : 1 },
+    ],
+    6: [{ d: [6], w: l => 3 }, { d: [4, 2], w: l => 1 }, { d: [2, -4], w: l => l < 5 ? 0 : 0.5 }],
+  };
 
   function expandCell(d, pos) {
     const out = [];
@@ -112,22 +164,23 @@ const Melody = (() => {
   }
 
   // Fill one chord segment [pos, pos+len) with rhythm cells.
-  function fillSegment(rng, level, pos, len, opts) {
+  // ctx: { cells, endings, beat, barLen, prof } — the meter's cell set and the type's rhythm profile.
+  function fillSegment(rng, level, pos, len, opts, ctx) {
     const events = [];
     let cur = pos;
     let remaining = len;
     let eighthBeats = 0;
     while (remaining > 0) {
       const options = [];
-      for (const c of CELLS) {
+      for (const c of ctx.cells) {
         const L = cellLen(c.d);
         if (L > remaining) continue;
         // Bar-length cells must start at the bar start.
-        if (L === 16 && cur !== 0) continue;
-        if (L === 12 && cur !== 0 && !(len === 12 && cur === pos)) continue;
+        if (L === ctx.barLen && cur !== 0) continue;
+        if (L === 12 && ctx.barLen === 16 && cur !== 0 && !(len === 12 && cur === pos)) continue;
         // Cells that straddle a beat boundary only start on a beat.
-        if (L > 4 && cur % 4 !== 0) continue;
-        let w = c.w(level);
+        if (L > ctx.beat && cur % ctx.beat !== 0) continue;
+        let w = c.w(level) * profileMult(c.t, ctx.prof);
         if (w <= 0) continue;
         // Low levels: cap eighth-note activity per bar.
         if (level >= 2.3 && level < 3.5 && c.d.length > 1 && eighthBeats >= 2) w *= 0.15;
@@ -139,32 +192,33 @@ const Melody = (() => {
       const cell = rng.weighted(options);
       const ev = expandCell(cell.d, cur);
       events.push(...ev);
-      if (cell.d.length > 1 && cellLen(cell.d) === 4) eighthBeats++;
+      if (cell.d.length > 1 && cellLen(cell.d) === ctx.beat) eighthBeats++;
       cur += cellLen(cell.d);
       remaining -= cellLen(cell.d);
     }
     return events;
   }
 
-  function endingSegment(rng, level, pos, len) {
-    const table = ENDINGS[len] || ENDINGS[4];
+  function endingSegment(rng, level, pos, len, ctx) {
+    const table = ctx.endings[len];
+    if (!table) return fillSegment(rng, level, pos, len, {}, ctx);
     const options = table.map(c => [c, c.w(level)]).filter(([, w]) => w > 0);
     return expandCell(rng.weighted(options).d, pos);
   }
 
   // Build the rhythm for a whole bar given its chord slots.
-  function barRhythm(rng, level, chords, barLen, isPhraseEnd, isFirstBar) {
+  function barRhythm(rng, level, chords, ctx, isPhraseEnd, isFirstBar) {
     const events = [];
     chords.forEach((c, i) => {
       const last = i === chords.length - 1;
-      if (isPhraseEnd && last) events.push(...endingSegment(rng, level, c.pos, c.dur));
-      else events.push(...fillSegment(rng, level, c.pos, c.dur, { noLeadingRest: isFirstBar || i === 0 && level < 6 }));
+      if (isPhraseEnd && last) events.push(...endingSegment(rng, level, c.pos, c.dur, ctx));
+      else events.push(...fillSegment(rng, level, c.pos, c.dur, { noLeadingRest: isFirstBar || i === 0 && level < 6 }, ctx));
     });
     return events;
   }
 
   const layoutKey = chords => chords.map(c => c.pos + ':' + c.dur).join(',');
-  const onBeat = pos => Math.abs(pos - Math.round(pos)) < 1e-6 && Math.round(pos) % 4 === 0;
+  const onBeat = (pos, beat = 4) => Math.abs(pos - Math.round(pos)) < 1e-6 && Math.round(pos) % beat === 0;
 
   // ---- Pitch helpers ---------------------------------------------------------
   function toneRoleWeight(chord, pc) {
@@ -223,6 +277,7 @@ const Melody = (() => {
       const t = (i + 1) / (n + 1);
       const interp = pA + (pB - pA) * t;
       const scale = new Set(chordScale(ev.chord, ev.chord.key || key));
+      for (const pc of P.extraPcs) scale.add(pc); // type colour (e.g. blue notes)
       const tones = new Set(chordTones(ev.chord));
       const isLast = i === n - 1;
       if (forced !== null) {
@@ -246,7 +301,7 @@ const Melody = (() => {
         let s = -Math.abs(m - interp) * 0.9;
         if (m === cur) s -= 1.6;
         if (isLast && m === pB) s -= 1.2;
-        if (onBeat(ev.pos) && tones.has(pc)) s += 0.8;
+        if (onBeat(ev.pos, P.beat) && tones.has(pc)) s += 0.8;
         if (chromatic) s += 0.6;
         if (Math.abs(m - cur) > 2) s -= 0.4 * (Math.abs(m - cur) - 2);
         s += rng.next() * 1.6;
@@ -299,9 +354,15 @@ const Melody = (() => {
   // ---- Main --------------------------------------------------------------
   // sections: from Harmony.generate, plus form info. Returns sections with
   // .bars[b] = { chords, events }.
-  function generate(rng, uiLevel, sections, form, barLen, homeKey) {
+  // profile: the type's melody profile — { rhythm: { tag: factor }, extraPcs: [semitones above the tonic] }
+  function generate(rng, uiLevel, sections, form, barLen, homeKey, profile = {}) {
     const level = internalLevel(uiLevel);
     const P = params(level);
+    const beat = barLen === 24 ? 6 : 4;
+    const ctx = { cells: barLen === 24 ? CELLS_68 : CELLS, endings: barLen === 24 ? ENDINGS_68 : ENDINGS,
+                  beat, barLen, prof: profile.rhythm || {} };
+    P.beat = beat;
+    P.extraPcs = (profile.extraPcs || []).map(i => mod(homeKey.tonic + i, 12));
     const out = [];
     let prevPitch = null;
     const totalBars = sections.reduce((a, s) => a + s.bars.length, 0);
@@ -333,13 +394,13 @@ const Melody = (() => {
             if (rng.chance(P.pMotif)) motifFrom = bars[srcIdx];
           }
           if (!events) {
-            events = barRhythm(rng, level, chords, barLen, isPhraseEnd || isLast, barCounter === 0 && b === 0);
+            events = barRhythm(rng, level, chords, ctx, isPhraseEnd || isLast, barCounter === 0 && b === 0);
           }
           // Final bar of the tune: make sure it ends on a held note.
           if (si === sections.length - 1 && isLast) {
             const lastC = chords[chords.length - 1];
             events = events.filter(e => e.pos < lastC.pos);
-            const endOpts = level < 4 || lastC.dur <= 4 ? [[lastC.dur]] : [[lastC.dur], [lastC.dur - 4, -4]];
+            const endOpts = level < 4 || lastC.dur <= beat ? [[lastC.dur]] : [[lastC.dur], [lastC.dur - beat, -beat]];
             events.push(...expandCell(rng.pick(endOpts), lastC.pos));
           }
         }
@@ -354,7 +415,7 @@ const Melody = (() => {
           e.chord.key = e.chord.key || key;
           e.chordStart = Math.abs(e.chord.pos - e.pos) < 1e-6;
           if (e.rest) { e.anchor = false; return; }
-          e.anchor = firstPitched || e.chordStart || e.dur >= 6 || (onBeat(e.pos) && e.triplet === null && rng.chance(P.pAnchor));
+          e.anchor = firstPitched || e.chordStart || e.dur >= 6 || (onBeat(e.pos, beat) && e.triplet === null && rng.chance(P.pAnchor));
           firstPitched = false;
         });
         const pitched = events.filter(e => !e.rest);
