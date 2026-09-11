@@ -175,7 +175,7 @@
       displayLoop: true, displayRestart: true, displayPlay: true, displayProgress: true, displayWarp: true,
     });
     synthControl.setTune(visualObj, false, {
-      chordsOff: $('chords-on').getAttribute('aria-pressed') !== 'true',
+      chordsOff: false,
       program: 0,
       midiTranspose: 0,
     }).catch(err => console.warn('Audio problem:', err));
@@ -274,9 +274,6 @@
   typeSelect.addEventListener('change', () => generate());
   $('generate').addEventListener('click', () => generate());
   $('print').addEventListener('click', () => window.print());
-  $('chords-on').addEventListener('click', () => {
-    const b = $('chords-on'); b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') === 'true' ? 'false' : 'true'); loadAudio();
-  });
   $('copy-link').addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(location.href);

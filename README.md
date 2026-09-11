@@ -18,7 +18,7 @@ Notation rendering and playback use [abcjs](https://github.com/paulrosen/abcjs) 
 
 - Two independent **Difficulty** sliders (1–10): one for the chords, one for the melody, so you can mix easy chords with a hard melody or the reverse. Hover a number to see what that level includes. A new sheet is generated when you let go, or press **New Sheet** / `N`.
 - **Key** and **Type** default to random. Key lists every major and minor key; Type lists the song feels grouped by time signature: 4/4 (Ballad, Medium, Bossa Nova, Medium Swing, Medium-Up Swing, Latin, Funk), 3/4 (Waltz, Slow Waltz, Jazz Waltz) and 2/4 (Samba, Ragtime, Polka, March, Tango).
-- **Play along** plays the melody with the chords as accompaniment (`Space` toggles play/pause); the note being played is highlighted on the sheet. The ♩= button opens a tempo slider (50–250 BPM). Untick *Play chord accompaniment* to hear the melody alone.
+- **Play along** plays the melody with the chords as accompaniment (`Space` toggles play/pause); the note being played is highlighted on the sheet. The ♩= button opens a tempo slider (50–250 BPM).
 - **Save** (top-right of the score) keeps the current sheet in your browser's local storage; **Saved** opens the list so you can reopen or remove any of them.
 - **Print / PDF** prints just the sheet.
 - Every sheet has a **seed**. The URL (`?chords=6&melody=4&seed=123456&key=Eb&type=Bossa%20Nova`) recreates the exact same sheet, and *Copy link* copies it. You can also paste a seed into the box and press *Load*.
