@@ -60,6 +60,7 @@ body {
 
 /* ---- difficulty ---- */
 .slider-row { display: grid; grid-template-columns: 62px 44px 1fr; align-items: center; gap: 10px; margin-bottom: 8px; }
+.slider-row + .option-grid { margin-top: 10px; }
 .slider-label { font-size: 13px; font-weight: 600; color: var(--muted); }
 .lvl {
   position: relative; display: inline-grid; place-items: center; width: 44px; height: 40px;
@@ -91,8 +92,6 @@ input[type=range]::-webkit-slider-thumb {
 input[type=range]::-moz-range-thumb {
   width: 16px; height: 16px; border-radius: 50%; background: var(--paper); border: 3px solid var(--accent);
 }
-.link-check { margin-top: 2px; }
-.link-check { margin-bottom: 14px; }
 
 /* ---- collapsible panels ---- */
 .collapsible > summary {
@@ -172,6 +171,7 @@ kbd { font: 11px/1 var(--sans); border: 1px solid var(--line); border-bottom-wid
 
 /* ---- score toolbar (save / saved) ---- */
 .sheet-tools { position: absolute; top: 12px; right: 12px; display: flex; gap: 6px; z-index: 5; }
+.sheet-tools-left { right: auto; left: 12px; }
 .tool-btn {
   display: inline-flex; align-items: center; gap: 6px; font: 600 13px/1 var(--sans); color: var(--ink);
   padding: 8px 11px; border-radius: 999px; border: 1px solid var(--line); background: var(--paper);

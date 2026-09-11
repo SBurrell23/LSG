@@ -4,7 +4,6 @@
   const $ = id => document.getElementById(id);
   const chordsInput = $('chords-level');
   const melodyInput = $('melody-level');
-  const linkInput = $('link-levels');
   const keySelect = $('key-select');
   const meterSelect = $('meter-select');
   let current = null;
@@ -70,13 +69,7 @@
     melodyInput.style.setProperty('--pct', ((m - 1) / 9 * 100) + '%');
   }
 
-  function onSliderInput(ev) {
-    if (linkInput.checked) {
-      const other = ev.target === chordsInput ? melodyInput : chordsInput;
-      other.value = ev.target.value;
-    }
-    updateLevelText();
-  }
+  const onSliderInput = () => updateLevelText();
 
   // ---- rendering ----
   function render(tune) {
@@ -190,7 +183,6 @@
 
   function loadSaved(entry) {
     chordsInput.value = entry.chords; melodyInput.value = entry.melody;
-    linkInput.checked = entry.chords === entry.melody;
     keySelect.value = entry.key || ''; meterSelect.value = entry.meter || '';
     updateLevelText();
     closeModal();
@@ -244,11 +236,6 @@
   melodyInput.addEventListener('input', onSliderInput);
   chordsInput.addEventListener('change', () => generate());
   melodyInput.addEventListener('change', () => generate());
-  linkInput.addEventListener('change', () => {
-    if (linkInput.checked && chordsInput.value !== melodyInput.value) {
-      melodyInput.value = chordsInput.value; updateLevelText(); generate();
-    }
-  });
   keySelect.addEventListener('change', () => generate());
   meterSelect.addEventListener('change', () => generate());
   $('generate').addEventListener('click', () => generate());
@@ -287,7 +274,6 @@
   const fromUrl = readUrl();
   if (fromUrl.chords) chordsInput.value = fromUrl.chords;
   if (fromUrl.melody) melodyInput.value = fromUrl.melody;
-  if (fromUrl.chords && fromUrl.melody && fromUrl.chords !== fromUrl.melody) linkInput.checked = false;
   keySelect.value = fromUrl.key;
   meterSelect.value = fromUrl.meter;
   updateLevelText();

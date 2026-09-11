@@ -16,7 +16,7 @@ Notation rendering and playback use [abcjs](https://github.com/paulrosen/abcjs) 
 
 ## Using it
 
-- Two **Difficulty** sliders (1–10): one for the chords, one for the melody. They move together by default; untick *Move both sliders together* to mix, e.g. easy chords with a hard melody. Hover a number to see what that level includes. A new sheet is generated when you let go, or press **New lead sheet** / `N`.
+- Two independent **Difficulty** sliders (1–10): one for the chords, one for the melody, so you can mix easy chords with a hard melody or the reverse. Hover a number to see what that level includes. A new sheet is generated when you let go, or press **New lead sheet** / `N`.
 - **Key** and **Time** default to random, or pick any major/minor key and 4/4 or 3/4.
 - **Play along** plays the melody with the chords as accompaniment (`Space` toggles play/pause); the note being played is highlighted on the sheet. Untick *Play chord accompaniment* to hear the melody alone.
 - **Save** (top-right of the score) keeps the current sheet in your browser's local storage; **Saved** opens the list so you can reopen or remove any of them.
