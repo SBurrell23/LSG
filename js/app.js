@@ -40,6 +40,97 @@
     }
   })();
 
+  // ---- custom dropdowns ----
+  // The native <select> keeps the state (and is what the rest of the app reads);
+  // a styled button + listbox is drawn in its place. Arrow keys, Enter, Escape
+  // and type-ahead work; group headers come from the <optgroup>s.
+  const dropdowns = [];
+  function enhanceSelect(sel) {
+    const wrap = document.createElement('div'); wrap.className = 'dd';
+    const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'dd-btn';
+    btn.setAttribute('aria-haspopup', 'listbox'); btn.setAttribute('aria-expanded', 'false');
+    if (sel.getAttribute('aria-labelledby')) btn.setAttribute('aria-labelledby', sel.getAttribute('aria-labelledby'));
+    const label = document.createElement('span'); label.className = 'dd-label';
+    const chev = document.createElement('span'); chev.className = 'chev'; chev.setAttribute('aria-hidden', 'true');
+    btn.append(label, chev);
+    const menu = document.createElement('ul'); menu.className = 'dd-menu'; menu.setAttribute('role', 'listbox'); menu.hidden = true;
+    sel.classList.add('enhanced'); sel.tabIndex = -1;
+    sel.parentNode.insertBefore(wrap, sel); wrap.append(btn, menu);
+    const opts = [];
+    let active = -1, typed = '', typedAt = 0;
+
+    function build() {
+      menu.innerHTML = ''; opts.length = 0;
+      const add = (o) => {
+        const li = document.createElement('li'); li.className = 'dd-opt'; li.setAttribute('role', 'option');
+        li.textContent = o.textContent; li.dataset.value = o.value;
+        li.addEventListener('click', () => choose(o.value));
+        li.addEventListener('mousemove', () => setActive(opts.indexOf(li)));
+        menu.appendChild(li); opts.push(li);
+      };
+      for (const child of sel.children) {
+        if (child.tagName === 'OPTGROUP') {
+          const h = document.createElement('li'); h.className = 'dd-group'; h.setAttribute('role', 'presentation'); h.textContent = child.label;
+          menu.appendChild(h);
+          for (const o of child.children) add(o);
+        } else add(child);
+      }
+      sync();
+    }
+    function sync() {
+      const cur = sel.options[sel.selectedIndex];
+      label.textContent = cur ? cur.textContent : '';
+      opts.forEach(li => li.setAttribute('aria-selected', li.dataset.value === sel.value ? 'true' : 'false'));
+    }
+    function setActive(i) {
+      if (active >= 0 && opts[active]) opts[active].classList.remove('active');
+      active = i;
+      if (active >= 0 && opts[active]) { opts[active].classList.add('active'); opts[active].scrollIntoView({ block: 'nearest' }); }
+    }
+    function open() {
+      if (!menu.hidden) return;
+      closeAll();
+      menu.hidden = false; wrap.classList.add('open'); btn.setAttribute('aria-expanded', 'true');
+      setActive(Math.max(0, opts.findIndex(li => li.dataset.value === sel.value)));
+    }
+    function close() {
+      if (menu.hidden) return;
+      menu.hidden = true; wrap.classList.remove('open'); btn.setAttribute('aria-expanded', 'false');
+      setActive(-1);
+    }
+    function choose(value) {
+      const changed = sel.value !== value;
+      sel.value = value; sync(); close(); btn.focus();
+      if (changed) sel.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    btn.addEventListener('click', () => (menu.hidden ? open() : close()));
+    btn.addEventListener('keydown', ev => {
+      const n = opts.length;
+      if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
+        ev.preventDefault();
+        if (menu.hidden) open();
+        else setActive(((active + (ev.key === 'ArrowDown' ? 1 : -1)) % n + n) % n);
+      } else if ((ev.key === 'Enter' || ev.key === ' ') && !menu.hidden) {
+        ev.preventDefault(); if (active >= 0) choose(opts[active].dataset.value);
+      } else if (ev.key === 'Escape' && !menu.hidden) { ev.preventDefault(); close(); }
+      else if (ev.key === 'Home' && !menu.hidden) { ev.preventDefault(); setActive(0); }
+      else if (ev.key === 'End' && !menu.hidden) { ev.preventDefault(); setActive(n - 1); }
+      else if (ev.key.length === 1 && /\S/.test(ev.key)) {
+        // type-ahead
+        const now = Date.now(); typed = (now - typedAt < 700 ? typed : '') + ev.key.toLowerCase(); typedAt = now;
+        const i = opts.findIndex(li => li.textContent.toLowerCase().startsWith(typed));
+        if (i >= 0) { if (menu.hidden) choose(opts[i].dataset.value); else setActive(i); }
+      }
+    });
+    const dd = { sel, build, sync, close };
+    dropdowns.push(dd);
+    build();
+    return dd;
+  }
+  function closeAll() { dropdowns.forEach(d => d.close()); }
+  function syncDropdowns() { dropdowns.forEach(d => d.sync()); }
+  document.addEventListener('pointerdown', ev => { if (!ev.target.closest('.dd')) closeAll(); });
+
   // ---- URL state ----
   function readUrl() {
     const p = new URLSearchParams(location.search);
@@ -80,12 +171,70 @@
 
   const onSliderInput = () => updateLevelText();
 
-  // Tooltip on the Type dropdown: describes the selected type's traits.
-  function updateTypeTip() {
-    const t = Tune.TYPES.find(x => x.name === typeSelect.value);
-    $('type-option').classList.toggle('has-type', !!t);
-    if (t) { $('type-tip-name').textContent = t.name + ' · ' + t.meter; $('type-tip-text').textContent = t.desc; }
+  // ---- song-type gallery (modal of tiles) ----
+  const typeModal = $('type-modal');
+  const tileTip = $('tile-tip');
+  function showTileTip(tile, t) {
+    $('tile-tip-name').textContent = t.name + ' · ' + t.meter;
+    $('tile-tip-text').textContent = t.desc;
+    tileTip.hidden = false;
+    const r = tile.getBoundingClientRect(), w = tileTip.offsetWidth, h = tileTip.offsetHeight;
+    let left = r.left + r.width / 2 - w / 2;
+    left = Math.max(8, Math.min(window.innerWidth - w - 8, left));
+    let top = r.top - h - 8;
+    if (top < 8) top = r.bottom + 8;
+    tileTip.style.left = left + 'px'; tileTip.style.top = top + 'px';
   }
+  const hideTileTip = () => { tileTip.hidden = true; };
+
+  function buildTypeGallery() {
+    const grid = $('type-grid');
+    grid.innerHTML = '';
+    const groups = [['Any', [{ name: 'Random', meter: '', desc: 'Picks a type that suits the difficulty, slower and simpler at low levels.', value: '' }]]];
+    for (const meter of ['4/4', '3/4', '2/4', '6/8']) groups.push([meter, Tune.TYPES.filter(t => t.meter === meter).map(t => ({ ...t, value: t.name }))]);
+    for (const [label, list] of groups) {
+      const g = document.createElement('section'); g.className = 'type-group';
+      const h = document.createElement('h3'); h.textContent = label; g.appendChild(h);
+      const ul = document.createElement('div'); ul.className = 'type-grid';
+      for (const t of list) {
+        const tile = document.createElement('button'); tile.type = 'button'; tile.className = 'tile';
+        tile.setAttribute('role', 'radio'); tile.dataset.value = t.value;
+        tile.innerHTML = TypeIcons.svg(t.name) + '<span></span>';
+        tile.querySelector('span').textContent = t.name;
+        const info = document.createElement('button'); info.type = 'button'; info.className = 'tile-info'; info.textContent = 'i';
+        info.setAttribute('aria-label', 'About ' + t.name);
+        info.addEventListener('click', ev => { ev.stopPropagation(); tileTip.hidden ? showTileTip(tile, t) : hideTileTip(); });
+        tile.appendChild(info);
+        tile.addEventListener('click', () => chooseType(t.value));
+        tile.addEventListener('mouseenter', () => { if (matchMedia('(hover: hover)').matches) showTileTip(tile, t); });
+        tile.addEventListener('mouseleave', hideTileTip);
+        tile.addEventListener('focus', () => showTileTip(tile, t));
+        tile.addEventListener('blur', hideTileTip);
+        ul.appendChild(tile);
+      }
+      g.appendChild(ul); grid.appendChild(g);
+    }
+  }
+  function syncTypeButton() {
+    const t = Tune.TYPES.find(x => x.name === typeSelect.value);
+    $('type-btn-label').textContent = t ? t.name : 'Random';
+    $('type-btn-icon').innerHTML = TypeIcons.svg(t ? t.name : 'Random');
+    $('type-grid').querySelectorAll('.tile').forEach(tile => tile.setAttribute('aria-checked', tile.dataset.value === typeSelect.value ? 'true' : 'false'));
+  }
+  function chooseType(value) {
+    const changed = typeSelect.value !== value;
+    typeSelect.value = value;
+    syncTypeButton(); hideTileTip(); closeTypeModal();
+    if (changed) generate();
+  }
+  function openTypeModal() {
+    typeModal.hidden = false;
+    const sel = $('type-grid').querySelector('.tile[aria-checked="true"]') || $('type-grid').querySelector('.tile');
+    if (sel) { sel.focus({ preventScroll: true }); sel.scrollIntoView({ block: 'center' }); }
+    hideTileTip();
+  }
+  function closeTypeModal() { typeModal.hidden = true; hideTileTip(); $('type-btn').focus(); }
+  const updateTypeTip = syncTypeButton;
 
   // ---- rendering ----
   function render(tune) {
@@ -226,6 +375,7 @@
   function loadSaved(entry) {
     chordsInput.value = entry.chords; melodyInput.value = entry.melody;
     keySelect.value = entry.key || ''; typeSelect.value = entry.type || '';
+    syncDropdowns(); syncTypeButton();
     updateLevelText();
     closeModal();
     generate(entry.seed);
@@ -279,7 +429,10 @@
   chordsInput.addEventListener('change', () => generate());
   melodyInput.addEventListener('change', () => generate());
   keySelect.addEventListener('change', () => generate());
-  typeSelect.addEventListener('change', () => { updateTypeTip(); generate(); });
+  typeSelect.addEventListener('change', () => { syncTypeButton(); generate(); });
+  $('type-btn').addEventListener('click', openTypeModal);
+  typeModal.addEventListener('click', ev => { if (ev.target.closest('[data-close]')) closeTypeModal(); });
+  $('type-grid').addEventListener('scroll', hideTileTip);
   $('generate').addEventListener('click', () => generate());
   $('print').addEventListener('click', () => window.print());
   $('copy-link').addEventListener('click', async () => {
@@ -297,10 +450,12 @@
   $('open-saved').addEventListener('click', openModal);
   $('saved-modal').addEventListener('click', ev => { if (ev.target.closest('[data-close]')) closeModal(); });
   document.addEventListener('keydown', ev => {
+    if (ev.target.closest && ev.target.closest('.dd')) return; // dropdown handles its own keys
+    if (ev.key === 'Escape' && !typeModal.hidden) { closeTypeModal(); return; }
     if (ev.key === 'Escape' && !$('saved-modal').hidden) { closeModal(); return; }
     if (ev.key === 'Escape' && !$('tempo-modal').hidden) { $('tempo-modal').hidden = true; return; }
     if (ev.target.matches('input, textarea, select')) return;
-    if (!$('saved-modal').hidden || !$('tempo-modal').hidden) return;
+    if (!$('saved-modal').hidden || !$('tempo-modal').hidden || !typeModal.hidden) return;
     if (ev.key === 'n' || ev.key === 'N') generate();
     if (ev.key === ' ' && synthControl) { ev.preventDefault(); synthControl.play(); }
   });
@@ -318,7 +473,9 @@
   if (fromUrl.melody) melodyInput.value = fromUrl.melody;
   keySelect.value = fromUrl.key;
   typeSelect.value = fromUrl.type;
-  updateTypeTip();
+  enhanceSelect(keySelect);
+  buildTypeGallery();
+  syncTypeButton();
   updateLevelText();
   generate(fromUrl.seed);
 })();

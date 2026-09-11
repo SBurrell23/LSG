@@ -157,6 +157,10 @@ const Tune = (() => {
       desc: 'Quick jazz waltz. Eighth-note lines, syncopation across the bar, ii–Vs and substitutions.',
       rhythm: { e: 1.3, s: 1.2, t: 1.0, l: 0.8, x: 0.6 },
       harmony: { mult: { secondary: 1.3, borrowed: 1.0, passingDim: 1.0, tritone: 1.2, slash: 0.7, sus: 1.0 } } },
+    { name: 'Minuet', meter: '3/4', tempo: [100, 124], minLevel: 2, w: 0.7,
+      desc: 'Stately classical dance in three. Even quarters and eighths, clear two-bar phrases, triads with V7 and the occasional V of V.',
+      rhythm: { q: 1.5, e: 1.2, d: 0.9, l: 0.9, s: 0.2, x: 0.3, t: 0.1, r: 0.6 },
+      harmony: { triads: true, mult: { secondary: 0.9, borrowed: 0.2, passingDim: 0.3, tritone: 0, slash: 1.0, sus: 0.2 } } },
     { name: 'Country Waltz', meter: '3/4', tempo: [84, 112], minLevel: 2, w: 0.8,
       desc: 'Old-time country waltz. Plain triads with V7, an occasional V of V, simple singable melody.',
       rhythm: { q: 1.6, l: 1.4, e: 0.7, s: 0.2, d: 1.0, x: 0.2, t: 0.2 },
@@ -371,6 +375,7 @@ const Tune = (() => {
     Habanera: [['Habanera for {Name}', 4], ['{Adj} Habanera', 4], ['Habanera at {Time}', 2]],
     'Country Waltz': [["{Name}'s Waltz", 3], ['{Adj} Country Waltz', 2], ['Waltz for {OddName}', 2], ['Back-Porch Waltz', 1]],
     '6/8 Ballad': [['{Adj} {Noun}', 4], ['{Noun} for {Name}', 3], ['Rocking {Noun}', 1]],
+    Minuet:  [['Minuet for {Name}', 4], ['{Adj} Minuet', 4], ['Minuet at {Time}', 2], ['Minuet in {WaltzIn}', 2]],
   };
 
   function makeTitle(rng, meter, feelName, mode) {
