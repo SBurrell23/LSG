@@ -318,6 +318,9 @@
       synthControl.setWarp(warp).catch(err => console.warn('Tempo problem:', err));
     }
   }
+  $('chords-on').addEventListener('click', () => {
+    const b = $('chords-on'); b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') === 'true' ? 'false' : 'true'); loadAudio();
+  });
   $('tempo-btn').addEventListener('click', () => { $('tempo-modal').hidden = false; $('tempo-slider').focus(); });
   $('tempo-modal').addEventListener('click', ev => { if (ev.target.closest('[data-close]')) $('tempo-modal').hidden = true; });
   $('tempo-slider').addEventListener('input', () => showBpm(clampBpm($('tempo-slider').value)));
@@ -341,7 +344,7 @@
       displayLoop: true, displayRestart: true, displayPlay: true, displayProgress: true, displayWarp: true,
     });
     synthControl.setTune(visualObj, false, {
-      chordsOff: false,
+      chordsOff: $('chords-on').getAttribute('aria-pressed') !== 'true',
       program: 0,
       midiTranspose: 0,
     }).catch(err => console.warn('Audio problem:', err));
