@@ -7,16 +7,16 @@ const Tune = (() => {
 
   // ---- Level descriptions (shown in the UI) ---------------------------------
   const LEVELS = {
-    1:  { name: 'First Steps',   harmony: 'C major only. I, IV and V triads, one chord per bar.', melody: 'Stepwise melody in whole, half and quarter notes within a sixth.' },
+    1:  { name: 'First Steps',   harmony: 'C major only. I, IV and V triads, one chord per bar. 16 bars.', melody: 'Stepwise melody in whole, half and quarter notes within a sixth.' },
     2:  { name: 'Easy',          harmony: 'Keys with up to one sharp or flat. Adds ii and vi.', melody: 'Dotted half notes, small leaps, simple two-bar motifs.' },
-    3:  { name: 'Beginner Plus', harmony: 'Up to two accidentals. Adds iii and V7. Occasional two chords per bar. Some tunes in 3/4.', melody: 'First eighth-note pairs and dotted quarters.' },
-    4:  { name: 'Intermediate',  harmony: 'Seventh chords throughout (maj7, m7, 7, m7b5). 32-bar AABA with turnarounds.', melody: 'Rests, dotted rhythms and the first syncopations.' },
-    5:  { name: 'Intermediate Plus', harmony: 'Secondary dominants (V7 of x). Minor keys and 7sus4 appear.', melody: 'Triplets, off-beat eighths, dotted-eighth figures, a few chromatic notes.' },
-    6:  { name: 'Advancing',     harmony: 'ii–V of x, borrowed chords (iv, bVI), slash-bass inversions, 6 and m6 chords.', melody: 'Sixteenth-note figures, syncopated bars, wider range.' },
-    7:  { name: 'Advanced',      harmony: 'Tritone substitutions, passing diminished chords, backdoor bVII7, V7b9 in minor. Keys up to five accidentals.', melody: 'Tresillo rhythms, chromatic approach notes, octave leaps.' },
-    8:  { name: 'Pro',           harmony: 'Extensions: 9, 13, maj9, 6/9, m11, 7#11. The bridge may modulate.', melody: 'Dense sixteenths, enclosures, larger leaps.' },
-    9:  { name: 'Expert',        harmony: 'Altered dominants (7alt, 7#9, 7b13), up to four chords per bar, any key.', melody: 'Chromatic enclosures, fast runs, two-octave range.' },
-    10: { name: 'Virtuoso',      harmony: 'Everything, denser: frequent changes, chromatic mediants, thick extensions.', melody: 'Maximum rhythmic density and chromaticism across the full range.' },
+    3:  { name: 'Beginner Plus', harmony: 'Up to two accidentals. Adds iii and an occasional V7. Some tunes in 3/4.', melody: 'A few eighth-note pairs; still mostly quarters and halves.' },
+    4:  { name: 'Moving Up',     harmony: '32-bar AABA form with turnarounds. Triads with V7; two chords per bar at cadences.', melody: 'Eighth-note pairs and dotted quarters become common.' },
+    5:  { name: 'Intermediate',  harmony: 'Seventh chords throughout (maj7, m7, 7, m7b5). Keys up to three accidentals.', melody: 'Rests, dotted rhythms and the first light syncopation.' },
+    6:  { name: 'Intermediate Plus', harmony: 'Occasional secondary dominants (V7 of x) and 7sus4. Minor keys appear.', melody: 'Off-beat eighths, dotted-eighth figures, a chromatic note here and there.' },
+    7:  { name: 'Advancing',     harmony: 'More secondary dominants, ii–V of x. Keys up to four accidentals.', melody: 'Triplets, syncopated bars, wider range.' },
+    8:  { name: 'Advanced',      harmony: 'Borrowed chords (iv, bVI), slash-bass inversions, 6 and m6 chords.', melody: 'First sixteenth-note figures, chromatic approach notes.' },
+    9:  { name: 'Pro',           harmony: 'Passing diminished chords, backdoor bVII7, V7b9 in minor. Keys up to five accidentals.', melody: 'Sixteenth figures, tresillo rhythms, bigger leaps.' },
+    10: { name: 'Expert',        harmony: 'Everything plus tritone substitutions and denser chord changes.', melody: 'Octave leaps, frequent chromatic approaches, the widest range.' },
   };
 
   // ---- Key choice ------------------------------------------------------------
@@ -25,13 +25,13 @@ const Tune = (() => {
     const min = (n) => KEYS.minor.filter(k => Math.abs(k.fifths) <= n).map(k => ['minor', k.name]);
     if (level === 1) return [['major', 'C']];
     if (level === 2) return maj(1);
-    if (level === 3) return maj(2);
-    if (level === 4) return maj(3);
-    if (level === 5) return [...maj(3), ...min(1)];
-    if (level === 6) return [...maj(4), ...min(2)];
-    if (level === 7) return [...maj(5), ...min(3)];
-    if (level === 8) return [...maj(5), ...min(4)];
-    return [...maj(6), ...min(5)].filter(([, n]) => n !== 'Gb'); // prefer F# over Gb
+    if (level <= 4) return maj(2);
+    if (level === 5) return maj(3);
+    if (level === 6) return [...maj(3), ...min(1)];
+    if (level === 7) return [...maj(4), ...min(2)];
+    if (level === 8) return [...maj(4), ...min(3)];
+    if (level === 9) return [...maj(5), ...min(3)];
+    return [...maj(5), ...min(4)];
   }
 
   function keyFromTonic(tonic, mode, nearFifths) {
@@ -52,7 +52,7 @@ const Tune = (() => {
       ];
     }
     let bKey = home, returnKey;
-    const pMod = level >= 10 ? 0.65 : level === 9 ? 0.55 : level === 8 ? 0.45 : 0;
+    const pMod = 0; // bridge modulation is beyond the top level now
     if (rng.chance(pMod)) {
       const opts = home.mode === 'major'
         ? [[5, 'major'], [9, 'minor'], [3, 'major'], [8, 'major'], [5, 'major']]
@@ -76,8 +76,9 @@ const Tune = (() => {
       return level >= 6 ? rng.pick([['Jazz Waltz', 132, 176], ['Slow Waltz', 84, 108]]) : ['Waltz', 96, 126];
     }
     if (level <= 3) return rng.pick([['Ballad', 60, 76], ['Medium', 88, 108], ['Bossa Nova', 96, 116]]);
-    if (level <= 7) return rng.pick([['Medium Swing', 116, 150], ['Bossa Nova', 116, 140], ['Ballad', 58, 72], ['Latin', 126, 156], ['Medium Swing', 120, 140]]);
-    return rng.pick([['Up-tempo Swing', 176, 232], ['Medium-Up Swing', 148, 176], ['Bossa Nova', 128, 152], ['Ballad', 54, 68], ['Funk', 92, 112], ['Samba', 176, 208]]);
+    if (level <= 5) return rng.pick([['Medium Swing', 108, 132], ['Bossa Nova', 108, 130], ['Ballad', 58, 72], ['Medium', 92, 112]]);
+    if (level <= 8) return rng.pick([['Medium Swing', 116, 150], ['Bossa Nova', 116, 140], ['Ballad', 58, 72], ['Latin', 126, 156], ['Funk', 92, 108]]);
+    return rng.pick([['Medium Swing', 120, 152], ['Medium-Up Swing', 148, 172], ['Bossa Nova', 120, 148], ['Ballad', 56, 70], ['Latin', 130, 160], ['Funk', 94, 112], ['Samba', 150, 180]]);
   }
 
   // ---- Titles ------------------------------------------------------------------

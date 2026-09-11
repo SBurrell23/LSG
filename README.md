@@ -18,7 +18,7 @@ Notation rendering and playback use [abcjs](https://github.com/paulrosen/abcjs) 
 
 - Two independent **Difficulty** sliders (1–10): one for the chords, one for the melody, so you can mix easy chords with a hard melody or the reverse. Hover a number to see what that level includes. A new sheet is generated when you let go, or press **New Sheet** / `N`.
 - **Key** and **Time** default to random, or pick any major/minor key and 4/4 or 3/4.
-- **Play along** plays the melody with the chords as accompaniment (`Space` toggles play/pause); the note being played is highlighted on the sheet. Untick *Play chord accompaniment* to hear the melody alone.
+- **Play along** plays the melody with the chords as accompaniment (`Space` toggles play/pause); the note being played is highlighted on the sheet. The ♩= button opens a tempo slider (50–250 BPM). Untick *Play chord accompaniment* to hear the melody alone.
 - **Save** (top-right of the score) keeps the current sheet in your browser's local storage; **Saved** opens the list so you can reopen or remove any of them.
 - **Print / PDF** prints just the sheet.
 - Every sheet has a **seed**. The URL (`?chords=6&melody=4&seed=123456&key=Eb`) recreates the exact same sheet, and *Copy link* copies it. You can also paste a seed into the box and press *Load*.
@@ -30,14 +30,14 @@ Notation rendering and playback use [abcjs](https://github.com/paulrosen/abcjs) 
 |---|---|---|
 | 1 | C major, I/IV/V triads, one chord per bar, 16 bars | Stepwise, whole/half/quarter notes |
 | 2 | Keys up to 1 accidental, adds ii and vi | Dotted halves, small leaps |
-| 3 | Up to 2 accidentals, adds iii and V7, some 3/4 tunes | First eighth notes, dotted quarters |
-| 4 | Seventh chords everywhere, 32-bar AABA with turnarounds | Rests, dotted rhythms, first syncopation |
-| 5 | Secondary dominants, minor keys, 7sus4 | Triplets, off-beat eighths, a few chromatic notes |
-| 6 | ii–V of x, borrowed chords (iv, ♭VI), slash chords, 6ths | Sixteenth figures, syncopated bars |
-| 7 | Tritone subs, passing diminished, backdoor ♭VII7, V7♭9 | Tresillo rhythms, chromatic approach notes |
-| 8 | 9ths, 13ths, maj9, 6/9, m11, 7♯11; bridge may modulate | Dense sixteenths, enclosures, bigger leaps |
-| 9 | Altered dominants, up to four chords per bar, any key | Fast chromatic runs, two-octave range |
-| 10 | Everything, denser | Maximum density and chromaticism |
+| 3 | Up to 2 accidentals, adds iii and an occasional V7, some 3/4 tunes | A few eighth-note pairs |
+| 4 | 32-bar AABA with turnarounds; triads with V7, two chords per bar at cadences | Eighth pairs and dotted quarters |
+| 5 | Seventh chords throughout, keys up to 3 accidentals | Rests, dotted rhythms, light syncopation |
+| 6 | Occasional secondary dominants, 7sus4, minor keys | Off-beat eighths, dotted-eighth figures, a stray chromatic note |
+| 7 | More secondary dominants, ii–V of x, keys up to 4 accidentals | Triplets, syncopated bars, wider range |
+| 8 | Borrowed chords (iv, ♭VI), slash chords, 6 and m6 | First sixteenth figures, chromatic approach notes |
+| 9 | Passing diminished, backdoor ♭VII7, V7♭9 in minor, keys up to 5 accidentals | Sixteenth figures, tresillo rhythms, bigger leaps |
+| 10 | Plus tritone substitutions and denser changes | Octave leaps, frequent chromatic approaches |
 
 ## How it works
 

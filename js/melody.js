@@ -6,20 +6,29 @@ const Melody = (() => {
   const { mod, chordTones, chordScale, QUALITIES } = Theory;
 
   // ---- Level parameters --------------------------------------------------
+  // The UI level (1-10) is mapped onto an internal scale of 1..7 (the old
+  // level 7 is the new 10), so all tables below are indexed by that scale and
+  // read with linear interpolation.
   const lerp = (a, b, t) => a + (b - a) * t;
+  const at = (arr, l) => {
+    const x = Math.max(1, Math.min(arr.length, l)) - 1;
+    const i = Math.floor(x), f = x - i;
+    return i + 1 < arr.length ? arr[i] + (arr[i + 1] - arr[i]) * f : arr[i];
+  };
+  const internalLevel = ui => 1 + (Math.max(1, Math.min(10, ui)) - 1) * (6 / 9);
   function params(level) {
-    const t = (level - 1) / 9;
+    const t = (level - 1) / 6;
     return {
-      lo: Math.round(lerp(60, 53, t)),          // C4 .. F3
-      hi: Math.round(lerp(74, 86, t)),          // D5 .. D6
-      leap: [5, 7, 7, 8, 9, 9, 12, 12, 14, 16][level - 1],
-      fillStep: [2, 2, 3, 4, 5, 5, 6, 7, 7, 9][level - 1],
-      pAnchor: lerp(0.9, 0.5, t),
-      pChrom: [0, 0, 0, 0.03, 0.07, 0.12, 0.18, 0.24, 0.32, 0.4][level - 1],
-      pEnclosure: level >= 9 ? 0.25 : level === 8 ? 0.1 : 0,
-      pMotif: [0.8, 0.8, 0.75, 0.7, 0.65, 0.6, 0.55, 0.5, 0.45, 0.4][level - 1],
+      lo: Math.round(lerp(60, 55, t)),          // C4 .. G3
+      hi: Math.round(lerp(74, 82, t)),          // D5 .. Bb5
+      leap: Math.round(at([5, 7, 7, 8, 9, 9, 12], level)),
+      fillStep: Math.round(at([2, 2, 3, 4, 5, 5, 6], level)),
+      pAnchor: lerp(0.9, 0.62, t),
+      pChrom: at([0, 0, 0, 0.03, 0.07, 0.12, 0.18], level),
+      pEnclosure: 0,
+      pMotif: at([0.8, 0.8, 0.75, 0.7, 0.65, 0.6, 0.55], level),
       pRhythmReuse: level <= 5 ? 0.85 : 0.7,
-      contourAmp: lerp(4, 9, t),
+      contourAmp: lerp(4, 8, t),
     };
   }
 
@@ -28,21 +37,21 @@ const Melody = (() => {
   // w: weight per level (array index level-1) or function.
   const CELLS = [
     // one beat
-    { d: [4],          w: l => [10, 9, 8, 7, 6, 5, 5, 4, 4, 3][l - 1] },
-    { d: [2, 2],       w: l => [0, 0, 3, 5, 7, 7, 7, 7, 7, 6][l - 1] },
+    { d: [4],          w: l => at([10, 9, 8, 7, 6, 5, 5], l) },
+    { d: [2, 2],       w: l => at([0, 0, 3, 5, 7, 7, 7], l) },
     { d: [-4],         w: l => l < 4 ? 0 : 0.4 + 0.12 * l },
     { d: [3, 1],       w: l => l < 5 ? 0 : 1.5 },
     { d: [1, 3],       w: l => l < 7 ? 0 : 0.8 },
     { d: [2, 1, 1],    w: l => l < 6 ? 0 : 1.5 + 0.2 * (l - 6) },
     { d: [1, 1, 2],    w: l => l < 6 ? 0 : 1.5 + 0.2 * (l - 6) },
     { d: [1, 2, 1],    w: l => l < 7 ? 0 : 1 },
-    { d: [1, 1, 1, 1], w: l => l < 7 ? 0 : [1, 1.5, 2.5, 3.5][l - 7] },
+    { d: [1, 1, 1, 1], w: l => l < 7 ? 0 : 1 },
     { d: ['t'],        w: l => l < 5 ? 0 : l < 8 ? 1 : 2 },
     { d: [-2, 2],      w: l => l < 5 ? 0 : 1 + 0.1 * l },
     { d: [2, -2],      w: l => l < 7 ? 0 : 0.7 },
     { d: [-1, 3],      w: l => l < 8 ? 0 : 0.5 },
     // two beats
-    { d: [8],          w: l => [8, 6, 5, 3, 3, 2.5, 2, 2, 1.5, 1.2][l - 1] },
+    { d: [8],          w: l => at([8, 6, 5, 3, 3, 2.5, 2], l) },
     { d: [6, 2],       w: l => l < 3 ? 0 : l < 4 ? 3 : 4 },
     { d: [2, 6],       w: l => l < 5 ? 0 : 3 },
     { d: [2, 4, 2],    w: l => l < 4 ? 0 : l < 6 ? 2 : 4 },
@@ -54,7 +63,7 @@ const Melody = (() => {
     // three beats
     { d: [12],         w: l => l < 2 ? 4 : 2 },
     // whole bar (4/4)
-    { d: [16],         w: l => [3, 2, 1, 0.6, 0.4, 0.3, 0.2, 0.2, 0.1, 0.1][l - 1] },
+    { d: [16],         w: l => at([3, 2, 1, 0.6, 0.4, 0.3, 0.2], l) },
     { d: [3, 3, 2, 3, 3, 2], w: l => l < 7 ? 0 : 1.5 },
     { d: [3, 3, 2, 4, 4],    w: l => l < 7 ? 0 : 1 },
     { d: [3, 3, 3, 3, 4],    w: l => l < 8 ? 0 : 0.8 },
@@ -121,7 +130,7 @@ const Melody = (() => {
         let w = c.w(level);
         if (w <= 0) continue;
         // Low levels: cap eighth-note activity per bar.
-        if (level === 3 && c.d.length > 1 && eighthBeats >= 2) w *= 0.15;
+        if (level >= 2.3 && level < 3.5 && c.d.length > 1 && eighthBeats >= 2) w *= 0.15;
         // No rest as the very first event of the piece / at bar 0 of a phrase start.
         if (opts.noLeadingRest && cur === 0 && c.d[0] < 0) continue;
         // Bar-final quarter/eighth (short note on beat 4) is fine; nothing else to check.
@@ -290,7 +299,8 @@ const Melody = (() => {
   // ---- Main --------------------------------------------------------------
   // sections: from Harmony.generate, plus form info. Returns sections with
   // .bars[b] = { chords, events }.
-  function generate(rng, level, sections, form, barLen, homeKey) {
+  function generate(rng, uiLevel, sections, form, barLen, homeKey) {
+    const level = internalLevel(uiLevel);
     const P = params(level);
     const out = [];
     let prevPitch = null;
@@ -437,5 +447,5 @@ const Melody = (() => {
     return out;
   }
 
-  return { generate, params };
+  return { generate, params, internalLevel };
 })();

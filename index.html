@@ -74,7 +74,10 @@
         <summary><h2>Play along</h2><span class="chev" aria-hidden="true"></span></summary>
         <div class="panel-body">
           <p class="hint">Piano melody with the chords underneath. The note being played lights up on the sheet.</p>
-          <div id="audio" class="audio"></div>
+          <div class="audio-row">
+            <div id="audio" class="audio"></div>
+            <button id="tempo-btn" class="tempo-btn" type="button" title="Change playback tempo">♩ = <span id="tempo-value">120</span></button>
+          </div>
           <label class="check"><input id="chords-on" type="checkbox" checked> Play chord accompaniment</label>
         </div>
       </details>
@@ -121,6 +124,29 @@
       </div>
     </section>
   </main>
+
+  <div id="tempo-modal" class="modal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-card modal-card-sm" role="dialog" aria-modal="true" aria-labelledby="tempo-title">
+      <div class="modal-head">
+        <h2 id="tempo-title">Playback Tempo</h2>
+        <button class="modal-close" type="button" aria-label="Close" data-close>×</button>
+      </div>
+      <div class="tempo-body">
+        <div class="tempo-readout"><span id="tempo-big">120</span><small>BPM</small></div>
+        <div class="tempo-controls">
+          <button id="tempo-minus" class="btn tempo-nudge" type="button" aria-label="Slower by 2 BPM">−</button>
+          <input id="tempo-slider" type="range" min="50" max="250" step="1" value="120" aria-label="Tempo in beats per minute">
+          <button id="tempo-plus" class="btn tempo-nudge" type="button" aria-label="Faster by 2 BPM">+</button>
+        </div>
+        <div class="tempo-scale" aria-hidden="true"><span>50</span><span>100</span><span>150</span><span>200</span><span>250</span></div>
+        <div class="row">
+          <button id="tempo-reset" class="btn" type="button">Sheet tempo (<span id="tempo-sheet">120</span>)</button>
+          <button class="btn btn-primary tempo-done" type="button" data-close>Done</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <div id="saved-modal" class="modal" hidden>
     <div class="modal-backdrop" data-close></div>

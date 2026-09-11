@@ -33,11 +33,11 @@ const Harmony = (() => {
     /* vii */ [[0, 65], [2, 25], [5, 10]],
   ];
 
-  // Which degrees are allowed at each level.
+  // Which degrees are allowed at each level (1-10).
   function allowedDegrees(level) {
     if (level <= 1) return [0, 3, 4];
     if (level === 2) return [0, 1, 3, 4, 5];
-    if (level === 3) return [0, 1, 2, 3, 4, 5];
+    if (level <= 4) return [0, 1, 2, 3, 4, 5];
     return [0, 1, 2, 3, 4, 5, 6];
   }
 
@@ -55,12 +55,11 @@ const Harmony = (() => {
     let pTwo;
     if (level <= 2) pTwo = 0;
     else if (level === 3) pTwo = role === 'cadence' ? 0.35 : 0.08;
-    else if (level <= 5) pTwo = role === 'cadence' ? 0.6 : 0.25;
-    else if (level <= 7) pTwo = 0.45;
-    else pTwo = 0.55;
+    else if (level === 4) pTwo = role === 'cadence' ? 0.5 : 0.12;
+    else if (level <= 6) pTwo = role === 'cadence' ? 0.6 : 0.25;
+    else if (level <= 8) pTwo = role === 'cadence' ? 0.6 : 0.35;
+    else pTwo = 0.45;
     if (role === 'turnaround' && level >= 4) pTwo = 1;
-    if (level >= 9 && barLen === 16 && rng.chance(0.12)) return [4, 4, 4, 4];
-    if (level === 10 && barLen === 16 && rng.chance(0.1)) return [8, 4, 4];
     if (rng.chance(pTwo)) {
       if (barLen === 12) return rng.chance(0.5) ? [8, 4] : [4, 8];
       return [half, half];
@@ -104,42 +103,21 @@ const Harmony = (() => {
   // ---- Decorations ----------------------------------------------------------
   function baseQuality(key, degree, level, rng) {
     const d = DIATONIC[key.mode][degree];
-    if (level <= 3) {
-      // Triads, but V7 appears from level 3.
-      if (degree === 4 && level === 3 && rng.chance(0.5)) return '7';
+    if (level <= 4) {
+      // Triads; V7 sometimes at level 3, always from level 4.
+      if (degree === 4 && (level >= 4 || rng.chance(0.5)) && level >= 3) return '7';
+      if (degree === 6) return 'm7b5';
       return d.triad;
     }
-    // Level 4+: sevenths (with some sixths / triads for colour)
+    // Level 5+: sevenths (with some sixths / triads for colour from level 8)
     if (key.mode === 'major') {
-      if (degree === 0) return rng.pick(level >= 6 ? ['maj7', 'maj7', '6', ''] : ['maj7', 'maj7', '']);
-      if (degree === 3) return rng.pick(level >= 6 ? ['maj7', 'maj7', '6'] : ['maj7']);
+      if (degree === 0) return rng.pick(level >= 8 ? ['maj7', 'maj7', '6', ''] : ['maj7', 'maj7', '']);
+      if (degree === 3) return rng.pick(level >= 8 ? ['maj7', 'maj7', '6'] : ['maj7']);
     } else {
-      if (degree === 0) return rng.pick(level >= 6 ? ['m7', 'm6', 'm', 'mMaj7'] : ['m7', 'm']);
-      if (degree === 4) return level >= 7 && rng.chance(0.4) ? '7b9' : '7';
+      if (degree === 0) return rng.pick(level >= 8 ? ['m7', 'm6', 'm', 'mMaj7'] : ['m7', 'm']);
+      if (degree === 4) return level >= 9 && rng.chance(0.4) ? '7b9' : '7';
     }
     return d.seventh;
-  }
-
-  function extend(chord, level, rng, isFinal) {
-    const q = chord.quality;
-    if (isFinal) {
-      if (level >= 8) chord.quality = isMinorish(q) ? rng.pick(['m9', 'm6', 'm7']) : rng.pick(['6/9', 'maj9', 'maj7']);
-      return;
-    }
-    if (level < 8) return;
-    const p = level === 8 ? 0.35 : level === 9 ? 0.5 : 0.65;
-    if (!rng.chance(p)) return;
-    if (q === '7') {
-      chord.quality = level >= 9
-        ? rng.pick(['9', '13', '7b9', '7#11', '7b13', '7alt', '7#9', '9sus4'])
-        : rng.pick(['9', '13', '7b9', '7#11']);
-    } else if (q === 'maj7') {
-      chord.quality = rng.pick(['maj9', '6/9', 'maj7#11', 'maj7']);
-    } else if (q === 'm7') {
-      chord.quality = rng.pick(['m9', 'm11', 'm9']);
-    } else if (q === 'm7b5' && level >= 9 && rng.chance(0.3)) {
-      chord.quality = 'm7b5';
-    }
   }
 
   // Main entry: build the whole tune's harmony.
@@ -197,13 +175,12 @@ const Harmony = (() => {
     chords = mergeRepeats(chords);
 
     // --- decorations, each gated by level ---
-    if (level >= 5) chords = secondaryDominants(rng, level, key, chords, barLen);
-    if (level >= 6) chords = modalInterchange(rng, level, key, chords, sec);
-    if (level >= 7) chords = passingDiminished(rng, level, key, chords, barLen);
-    if (level >= 7) chords = tritoneSubs(rng, level, key, chords);
-    if (level >= 6) chords = slashChords(rng, level, key, chords);
-    if (level >= 8) chords.forEach((c, i) => extend(c, level, rng, sec.cadence === 'final' && i === chords.length - 1));
-    if (level >= 5) chords = susColour(rng, level, chords);
+    if (level >= 6) chords = secondaryDominants(rng, level, key, chords, barLen);
+    if (level >= 8) chords = modalInterchange(rng, level, key, chords, sec);
+    if (level >= 9) chords = passingDiminished(rng, level, key, chords, barLen);
+    if (level >= 10) chords = tritoneSubs(rng, level, key, chords);
+    if (level >= 8) chords = slashChords(rng, level, key, chords);
+    if (level >= 6) chords = susColour(rng, level, chords);
 
     // A modulated section returns home through the home key's ii–V.
     if (sec.returnKey && sec.cadence === 'half') {
@@ -211,7 +188,7 @@ const Harmony = (() => {
       const half = barLen === 12 ? [8, 4] : [8, 8];
       chords = chords.filter(c => c.bar !== nBars - 1);
       chords.push({ root: degreeRoot(hk, 1), quality: hk.mode === 'major' ? 'm7' : 'm7b5', bar: nBars - 1, pos: 0, dur: half[0], degree: 1, diatonic: false, key: hk });
-      chords.push({ root: degreeRoot(hk, 4), quality: hk.mode === 'major' ? (level >= 9 && rng.chance(0.5) ? '7alt' : '7') : '7b9', bar: nBars - 1, pos: half[0], dur: half[1], degree: 4, diatonic: false, key: hk });
+      chords.push({ root: degreeRoot(hk, 4), quality: hk.mode === 'major' ? '7' : '7b9', bar: nBars - 1, pos: half[0], dur: half[1], degree: 4, diatonic: false, key: hk });
     }
 
     // Regroup into bars.
@@ -240,28 +217,28 @@ const Harmony = (() => {
 
   // Insert V7/X (or ii–V/X) before a chord X.
   function secondaryDominants(rng, level, key, chords, barLen) {
-    const p = level === 5 ? 0.25 : level === 6 ? 0.35 : 0.45;
+    const p = [0.18, 0.28, 0.35, 0.42, 0.45][Math.min(level, 10) - 6];
     const out = [];
     for (let i = 0; i < chords.length; i++) {
       const c = chords[i];
       const next = chords[i + 1];
       const split = splitDur(c.dur);
-      const canSplit = split && (level >= 7 ? c.dur >= barLen / 2 : c.dur >= barLen);
+      const canSplit = split && (level >= 9 ? c.dur >= barLen / 2 : c.dur >= barLen);
       if (next && canSplit && next.quality !== 'dim' && next.quality !== 'm7b5' && next.quality !== 'dim7'
           && !isDominant(c.quality) && next.degree !== c.degree && rng.chance(p)) {
         const target = next.root;
         const domRoot = mod(target + 7, 12);
         const [d1, d2] = split;
-        const useIIV = level >= 6 && c.dur >= barLen && rng.chance(0.4) && c.degree !== 0;
+        const useIIV = level >= 7 && c.dur >= barLen && rng.chance(0.4) && c.degree !== 0;
         if (useIIV) {
           const iiRoot = mod(target + 2, 12);
           const iiQ = isMinorish(next.quality) ? 'm7b5' : 'm7';
           out.push({ ...c, root: iiRoot, quality: iiQ, dur: d1, diatonic: false, degree: -1 });
-          out.push({ ...c, root: domRoot, quality: level >= 8 && isMinorish(next.quality) ? '7b9' : '7',
+          out.push({ ...c, root: domRoot, quality: '7',
                      pos: c.pos + d1, dur: d2, diatonic: false, degree: -1, secondary: true });
         } else {
           out.push({ ...c, dur: d1 });
-          out.push({ ...c, root: domRoot, quality: level >= 8 && isMinorish(next.quality) && rng.chance(0.5) ? '7b9' : '7',
+          out.push({ ...c, root: domRoot, quality: '7',
                      pos: c.pos + d1, dur: d2, diatonic: false, degree: -1, secondary: true });
         }
       } else out.push(c);
@@ -272,21 +249,18 @@ const Harmony = (() => {
   // Borrowed chords: IV -> iv, backdoor bVII7, bVI, cadential iiø.
   function modalInterchange(rng, level, key, chords, sec) {
     if (key.mode !== 'major') return chords;
-    const p = level === 6 ? 0.2 : level === 7 ? 0.3 : 0.4;
+    const p = level === 8 ? 0.2 : level === 9 ? 0.3 : 0.35;
     for (let i = 0; i < chords.length; i++) {
       const c = chords[i], next = chords[i + 1], isLast = i === chords.length - 1;
       if (isLast) continue;
       if (c.degree === 3 && next && (next.degree === 0 || next.degree === 2) && rng.chance(p)) {
-        c.quality = rng.pick(level >= 7 ? ['m', 'm6', 'm7'] : ['m']); c.diatonic = false; c.borrowed = true;
-      } else if (c.degree === 4 && next && next.degree === 0 && sec.cadence !== 'final' && level >= 7 && rng.chance(p * 0.6)) {
+        c.quality = rng.pick(level >= 9 ? ['m', 'm6', 'm7'] : ['m']); c.diatonic = false; c.borrowed = true;
+      } else if (c.degree === 4 && next && next.degree === 0 && sec.cadence !== 'final' && level >= 9 && rng.chance(p * 0.6)) {
         // backdoor dominant bVII7 -> I
         c.root = mod(key.tonic + 10, 12); c.quality = '7'; c.degree = -1; c.diatonic = false; c.borrowed = true;
       } else if (c.degree === 5 && next && next.degree === 4 && rng.chance(p * 0.7)) {
         // vi -> bVI (maj7) before V
-        c.root = mod(key.tonic + 8, 12); c.quality = level >= 7 ? 'maj7' : ''; c.degree = -1; c.diatonic = false; c.borrowed = true;
-      } else if (c.degree === 1 && next && next.degree === 4 && level >= 8 && rng.chance(0.25)) {
-        c.quality = 'm7b5'; c.diatonic = false; c.borrowed = true;
-        if (next.quality === '7') next.quality = '7b9';
+        c.root = mod(key.tonic + 8, 12); c.quality = level >= 9 ? 'maj7' : ''; c.degree = -1; c.diatonic = false; c.borrowed = true;
       }
     }
     return chords;
@@ -294,7 +268,7 @@ const Harmony = (() => {
 
   // C – C#dim7 – Dm7 style passing chords when roots ascend by a whole step.
   function passingDiminished(rng, level, key, chords, barLen) {
-    const p = level === 7 ? 0.25 : 0.35;
+    const p = level === 9 ? 0.22 : 0.3;
     const out = [];
     for (let i = 0; i < chords.length; i++) {
       const c = chords[i], next = chords[i + 1];
@@ -312,13 +286,13 @@ const Harmony = (() => {
 
   // Replace a dominant resolving down a fifth with the dominant a tritone away.
   function tritoneSubs(rng, level, key, chords) {
-    const p = level === 7 ? 0.2 : level === 8 ? 0.3 : 0.4;
+    const p = 0.25;
     for (let i = 0; i < chords.length - 1; i++) {
       const c = chords[i], next = chords[i + 1];
       if (c.quality === '7' && mod(c.root + 5, 12) === next.root && rng.chance(p)) {
         // keep the very final V7 -> I intact most of the time
         if (i === chords.length - 2 && rng.chance(0.6)) continue;
-        c.root = mod(c.root + 6, 12); c.quality = level >= 8 && rng.chance(0.5) ? '7#11' : '7';
+        c.root = mod(c.root + 6, 12); c.quality = '7';
         c.degree = -1; c.diatonic = false; c.tritone = true;
       }
     }
@@ -327,7 +301,7 @@ const Harmony = (() => {
 
   // Inversions for smoother bass lines (C/E, G/B ...).
   function slashChords(rng, level, key, chords) {
-    const p = level === 6 ? 0.12 : 0.18;
+    const p = level === 8 ? 0.12 : 0.18;
     for (let i = 0; i < chords.length - 1; i++) {
       const c = chords[i], next = chords[i + 1];
       if (c.bass !== undefined || isDominant(c.quality) && c.quality !== '7') continue;
@@ -343,14 +317,14 @@ const Harmony = (() => {
 
   // Occasional 7sus4 resolving to 7 (splits a dominant slot).
   function susColour(rng, level, chords) {
-    const p = level <= 6 ? 0.1 : 0.18;
+    const p = level <= 8 ? 0.1 : 0.16;
     const out = [];
     for (let i = 0; i < chords.length; i++) {
       const c = chords[i];
       const split = splitDur(c.dur);
       if (c.quality === '7' && split && c.dur >= 8 && !c.tritone && rng.chance(p)) {
         const [d1, d2] = split;
-        out.push({ ...c, quality: level >= 8 && rng.chance(0.4) ? '9sus4' : '7sus4', dur: d1 });
+        out.push({ ...c, quality: '7sus4', dur: d1 });
         out.push({ ...c, pos: c.pos + d1, dur: d2 });
       } else out.push(c);
     }

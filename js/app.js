@@ -128,6 +128,29 @@
     }
   }
 
+  // ---- tempo (BPM) control, replaces abcjs's percent box ----
+  let bpm = 120;
+  const clampBpm = v => Math.max(50, Math.min(250, Math.round(v)));
+  function showBpm(v) {
+    $('tempo-value').textContent = v; $('tempo-big').textContent = v; $('tempo-slider').value = v;
+    $('tempo-slider').style.setProperty('--pct', ((v - 50) / 200 * 100) + '%');
+  }
+  function applyBpm(v) {
+    bpm = clampBpm(v);
+    showBpm(bpm);
+    if (synthControl && current) {
+      const warp = Math.max(1, Math.round(bpm / current.tempo * 100));
+      synthControl.setWarp(warp).catch(err => console.warn('Tempo problem:', err));
+    }
+  }
+  $('tempo-btn').addEventListener('click', () => { $('tempo-modal').hidden = false; $('tempo-slider').focus(); });
+  $('tempo-modal').addEventListener('click', ev => { if (ev.target.closest('[data-close]')) $('tempo-modal').hidden = true; });
+  $('tempo-slider').addEventListener('input', () => showBpm(clampBpm($('tempo-slider').value)));
+  $('tempo-slider').addEventListener('change', () => applyBpm($('tempo-slider').value));
+  $('tempo-minus').addEventListener('click', () => applyBpm(bpm - 2));
+  $('tempo-plus').addEventListener('click', () => applyBpm(bpm + 2));
+  $('tempo-reset').addEventListener('click', () => applyBpm(current ? current.tempo : 120));
+
   function loadAudio() {
     const box = $('audio');
     if (!ABCJS.synth.supportsAudio()) {
@@ -149,6 +172,10 @@
       program: 0,
       midiTranspose: 0,
     }).catch(err => console.warn('Audio problem:', err));
+    // Every sheet starts at its own written tempo.
+    bpm = current ? current.tempo : 120;
+    $('tempo-sheet').textContent = bpm;
+    showBpm(bpm);
   }
 
   // ---- saved sheets (localStorage) ----
@@ -257,8 +284,9 @@
   $('saved-modal').addEventListener('click', ev => { if (ev.target.closest('[data-close]')) closeModal(); });
   document.addEventListener('keydown', ev => {
     if (ev.key === 'Escape' && !$('saved-modal').hidden) { closeModal(); return; }
+    if (ev.key === 'Escape' && !$('tempo-modal').hidden) { $('tempo-modal').hidden = true; return; }
     if (ev.target.matches('input, textarea, select')) return;
-    if (!$('saved-modal').hidden) return;
+    if (!$('saved-modal').hidden || !$('tempo-modal').hidden) return;
     if (ev.key === 'n' || ev.key === 'N') generate();
     if (ev.key === ' ' && synthControl) { ev.preventDefault(); synthControl.play(); }
   });

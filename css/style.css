@@ -152,7 +152,25 @@ kbd { font: 11px/1 var(--sans); border: 1px solid var(--line); border-bottom-wid
 .abcjs-inline-audio .abcjs-midi-progress-background { background: #cdbfa5 !important; }
 .abcjs-inline-audio .abcjs-midi-progress-indicator { background: var(--accent) !important; }
 .abcjs-inline-audio .abcjs-midi-clock { color: var(--ink) !important; }
-.abcjs-inline-audio .abcjs-tempo-wrapper { color: var(--ink) !important; font-size: 12px !important; font-weight: 600; }
+.abcjs-inline-audio .abcjs-tempo-wrapper { display: none !important; }
+.audio-row { display: flex; align-items: center; gap: 8px; }
+.audio-row .audio { flex: 1; min-width: 0; }
+.tempo-btn {
+  flex: 0 0 auto; font: 600 13px/1 var(--sans); color: var(--ink); padding: 9px 12px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--paper); cursor: pointer; white-space: nowrap;
+}
+.tempo-btn:hover { background: #f8f3ea; }
+.modal-card-sm { width: min(440px, 100%); }
+.tempo-body { padding: 18px 20px 20px; }
+.tempo-readout { text-align: center; font-family: var(--serif); font-size: 64px; font-weight: 700; line-height: 1; color: var(--accent); margin-bottom: 18px; }
+.tempo-readout small { font: 600 13px var(--sans); color: var(--muted); margin-left: 8px; letter-spacing: 0.08em; }
+.tempo-controls { display: flex; align-items: center; gap: 12px; }
+.tempo-controls input[type=range] { flex: 1; height: 12px; }
+.tempo-controls input[type=range]::-webkit-slider-thumb { width: 30px; height: 30px; }
+.tempo-controls input[type=range]::-moz-range-thumb { width: 24px; height: 24px; }
+.tempo-nudge { width: 48px; height: 48px; padding: 0; font-size: 24px; line-height: 1; border-radius: 12px; flex: 0 0 auto; }
+.tempo-scale { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); padding: 6px 62px 0; margin-bottom: 16px; }
+.tempo-body .row .btn-primary { width: auto; font-size: 14px; padding: 10px 14px; }
 .abcjs-inline-audio .abcjs-midi-tempo { color: var(--ink) !important; background: var(--paper) !important; border: 1px solid #c9b99c !important; border-radius: 6px !important; font: inherit; font-size: 12px !important; padding: 2px 4px !important; }
 .abcjs-inline-audio .abcjs-midi-clock { font-family: var(--sans) !important; font-size: 13px !important; font-weight: 600; }
 .abcjs-inline-audio .abcjs-loading-svg circle { stroke: var(--ink) !important; }
