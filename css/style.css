@@ -92,7 +92,20 @@ input[type=range]::-moz-range-thumb {
   width: 16px; height: 16px; border-radius: 50%; background: var(--paper); border: 3px solid var(--accent);
 }
 .link-check { margin-top: 2px; }
-.hint.tiny { font-size: 12px; margin: 4px 0 12px; }
+.link-check { margin-bottom: 14px; }
+
+/* ---- collapsible panels ---- */
+.collapsible > summary {
+  list-style: none; display: flex; align-items: center; justify-content: space-between;
+  cursor: pointer; margin: -18px -20px; padding: 18px 20px; border-radius: var(--radius); user-select: none;
+}
+.collapsible[open] > summary { margin-bottom: 0; border-radius: var(--radius) var(--radius) 0 0; }
+.collapsible > summary::-webkit-details-marker { display: none; }
+.collapsible > summary:hover { background: #f8f3ea; }
+.collapsible > summary h2 { margin: 0; }
+.chev { width: 9px; height: 9px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(-45deg); transition: transform .2s; margin-right: 2px; }
+.collapsible[open] .chev { transform: rotate(45deg); }
+.panel-body { padding-top: 6px; }
 
 .option-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
 .option { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--muted); }

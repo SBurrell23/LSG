@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Lead Sheet Generator</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/abcjs@6.7.0/abcjs-audio.css">
@@ -52,7 +53,6 @@
           <input id="link-levels" type="checkbox" checked>
           <span>Move both sliders together</span>
         </label>
-        <p class="hint tiny">Hover a number to see what that level includes.</p>
 
         <div class="option-grid">
           <label class="option">
@@ -75,15 +75,18 @@
         <p class="hint kbd-hint">Shortcuts: <kbd>N</kbd> new sheet · <kbd>Space</kbd> play / pause</p>
       </section>
 
-      <section class="panel">
-        <h2>Play along</h2>
-        <p class="hint">Piano melody with the chords underneath. The note being played lights up on the sheet.</p>
-        <div id="audio" class="audio"></div>
-        <label class="check"><input id="chords-on" type="checkbox" checked> Play chord accompaniment</label>
-      </section>
+      <details class="panel collapsible" id="panel-play" open>
+        <summary><h2>Play along</h2><span class="chev" aria-hidden="true"></span></summary>
+        <div class="panel-body">
+          <p class="hint">Piano melody with the chords underneath. The note being played lights up on the sheet.</p>
+          <div id="audio" class="audio"></div>
+          <label class="check"><input id="chords-on" type="checkbox" checked> Play chord accompaniment</label>
+        </div>
+      </details>
 
-      <section class="panel">
-        <h2>This sheet</h2>
+      <details class="panel collapsible" id="panel-sheet" open>
+        <summary><h2>This sheet</h2><span class="chev" aria-hidden="true"></span></summary>
+        <div class="panel-body">
         <dl class="meta">
           <dt>Seed</dt><dd><code id="seed"></code></dd>
           <dt>Key</dt><dd id="meta-key"></dd>
@@ -101,7 +104,8 @@
           <summary>ABC notation source</summary>
           <textarea id="abc-source" readonly rows="10" spellcheck="false"></textarea>
         </details>
-      </section>
+        </div>
+      </details>
     </aside>
 
     <section class="sheet-wrap">

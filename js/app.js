@@ -204,6 +204,13 @@
     if (ev.key === ' ' && synthControl) { ev.preventDefault(); synthControl.play(); }
   });
 
+  // ---- collapsible panels remember their state ----
+  document.querySelectorAll('details.collapsible').forEach(d => {
+    const k = 'lsg-' + d.id;
+    try { const v = localStorage.getItem(k); if (v === 'closed') d.open = false; } catch (e) { /* ignore */ }
+    d.addEventListener('toggle', () => { try { localStorage.setItem(k, d.open ? 'open' : 'closed'); } catch (e) { /* ignore */ } });
+  });
+
   // ---- init ----
   const fromUrl = readUrl();
   if (fromUrl.chords) chordsInput.value = fromUrl.chords;
