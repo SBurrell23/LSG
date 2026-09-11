@@ -467,6 +467,9 @@ const Tune = (() => {
     // 6/8 tempos count dotted quarters; everything else counts quarters.
     lines.push('Q:"' + feelName + '" ' + (meter === '6/8' ? '3/8=' : '1/4=') + tempo);
     if (tune.gchord) lines.push('%%MIDI gchord ' + tune.gchord);
+    // Accompaniment sits under the melody: abcjs defaults are chord 48 / bass 64 (of 127).
+    lines.push('%%MIDI chordvol 34');
+    lines.push('%%MIDI bassvol 48');
     lines.push('K:' + key.abc);
     const barsPerLine = meter === '2/4' ? 8 : 4;
     const beat = meter === '6/8' ? 6 : 4;
