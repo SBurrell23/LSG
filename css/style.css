@@ -338,6 +338,8 @@ kbd { font: 11px/1 var(--sans); border: 1px solid var(--line); border-bottom-wid
 .saved-empty b { color: var(--ink); }
 .sheet svg { max-width: 100%; height: auto; }
 .abcjs-chord { font-weight: 600; }
+.sheet .abcjs-note, .sheet .abcjs-rest { cursor: pointer; }
+.sheet .abcjs-note:hover * { fill: #8a5a4a; }
 .abcjs-highlight, .abcjs-highlight * { fill: var(--accent) !important; }
 .abcjs-highlight.abcjs-note { filter: drop-shadow(0 0 3px rgba(181, 65, 42, 0.5)); }
 

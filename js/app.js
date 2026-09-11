@@ -254,6 +254,7 @@
       responsive: 'resize',
       scale: totalBars <= 16 ? 1.2 : 1,
       add_classes: true,
+      clickListener: (abcElem) => { if (abcElem && (abcElem.el_type === 'note')) seekToElem(abcElem); },
       staffwidth: 980,
       paddingtop: 10,
       paddingbottom: 20,
@@ -277,6 +278,26 @@
     $('meta-form').textContent = totalBars + ' bars, ' + letters + (modulates ? ' (bridge modulates)' : '');
     document.title = tune.title + ' · Lead Sheet Generator';
     loadAudio();
+  }
+
+  // ---- click / tap a note to play from there ----
+  // Finds the timing event for the clicked note (matched by its position in the
+  // ABC source), seeks both the audio and the cursor timer to it in seconds so
+  // they stay in step, then starts playback if it was not already running.
+  function seekToElem(abcElem) {
+    if (!synthControl || !current) return;
+    Promise.resolve(synthControl.runWhenReady(() => {
+      const timer = synthControl.timer;
+      if (!timer || !timer.noteTimings) return;
+      const ev = timer.noteTimings.find(t => t.type === 'event' && t.startCharArray && t.startCharArray.includes(abcElem.startChar))
+        || timer.noteTimings.find(t => t.type === 'event' && t.startChar === abcElem.startChar);
+      if (!ev) return;
+      const pct = timer.lastMoment ? ev.milliseconds / timer.lastMoment : 0;
+      synthControl.seek(ev.milliseconds / 1000, 'seconds');
+      synthControl.percent = pct; // so a fresh play() starts the timer from the same spot
+      synthControl.setProgress(pct, synthControl.midiBuffer.duration * 1000);
+      if (!synthControl.isStarted) return synthControl.play();
+    })).catch(err => console.warn('Seek problem:', err));
   }
 
   // ---- playback with a moving highlight ----
