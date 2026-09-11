@@ -190,7 +190,8 @@
   function buildTypeGallery() {
     const grid = $('type-grid');
     grid.innerHTML = '';
-    const groups = [['Any', [{ name: 'Random', meter: '', desc: 'Picks a type that suits the difficulty, slower and simpler at low levels.', value: '' }]]];
+    const groups = [];
+    $('type-random').querySelector('.random-pill-icon').innerHTML = TypeIcons.svg('Random');
     // Within each time signature, slowest on the left, fastest on the right.
     const avgTempo = t => (t.tempo[0] + t.tempo[1]) / 2;
     for (const meter of ['4/4', '3/4', '2/4', '6/8']) {
@@ -198,7 +199,10 @@
     }
     for (const [label, list] of groups) {
       const g = document.createElement('section'); g.className = 'type-group';
-      const h = document.createElement('h3'); h.textContent = label; g.appendChild(h);
+      const h = document.createElement('h3');
+      h.innerHTML = '<span></span><span class="rule"></span><span class="tempo-hint"><span>◀ Slower</span><span class="sep">·</span><span>Faster ▶</span></span><span class="rule"></span>';
+      h.querySelector('span').textContent = label;
+      g.appendChild(h);
       const ul = document.createElement('div'); ul.className = 'type-grid';
       for (const t of list) {
         const tile = document.createElement('button'); tile.type = 'button'; tile.className = 'tile';
@@ -224,6 +228,7 @@
     $('type-btn-label').textContent = t ? t.name : 'Random';
     $('type-btn-icon').innerHTML = TypeIcons.svg(t ? t.name : 'Random');
     $('type-grid').querySelectorAll('.tile').forEach(tile => tile.setAttribute('aria-checked', tile.dataset.value === typeSelect.value ? 'true' : 'false'));
+    $('type-random').setAttribute('aria-checked', typeSelect.value === '' ? 'true' : 'false');
   }
   function chooseType(value) {
     const changed = typeSelect.value !== value;
@@ -435,6 +440,7 @@
   keySelect.addEventListener('change', () => generate());
   typeSelect.addEventListener('change', () => { syncTypeButton(); generate(); });
   $('type-btn').addEventListener('click', openTypeModal);
+  $('type-random').addEventListener('click', () => chooseType(''));
   typeModal.addEventListener('click', ev => { if (ev.target.closest('[data-close]')) closeTypeModal(); });
   $('type-grid').addEventListener('scroll', hideTileTip);
   $('generate').addEventListener('click', () => generate());
