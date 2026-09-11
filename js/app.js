@@ -319,7 +319,20 @@
     }
   }
   $('chords-on').addEventListener('click', () => {
-    const b = $('chords-on'); b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') === 'true' ? 'false' : 'true'); loadAudio();
+    const b = $('chords-on'); b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
+    // Rebuild the audio with/without chords but carry on from the same spot and tempo.
+    const wasPlaying = !!(synthControl && synthControl.isStarted);
+    const pct = synthControl ? synthControl.percent || 0 : 0;
+    const keepBpm = bpm;
+    loadAudio();
+    if (!synthControl || !current) return;
+    bpm = keepBpm; showBpm(bpm);
+    synthControl.warp = Math.max(1, Math.round(bpm / current.tempo * 100));
+    synthControl.go().then(() => {
+      synthControl.setProgress(pct, synthControl.midiBuffer.duration * 1000);
+      if (wasPlaying) return synthControl.play().then(() => synthControl.seek(pct));
+      synthControl.seek(pct);
+    }).catch(err => console.warn('Audio problem:', err));
   });
   $('tempo-btn').addEventListener('click', () => { $('tempo-modal').hidden = false; $('tempo-slider').focus(); });
   $('tempo-modal').addEventListener('click', ev => { if (ev.target.closest('[data-close]')) $('tempo-modal').hidden = true; });
