@@ -191,7 +191,11 @@
     const grid = $('type-grid');
     grid.innerHTML = '';
     const groups = [['Any', [{ name: 'Random', meter: '', desc: 'Picks a type that suits the difficulty, slower and simpler at low levels.', value: '' }]]];
-    for (const meter of ['4/4', '3/4', '2/4', '6/8']) groups.push([meter, Tune.TYPES.filter(t => t.meter === meter).map(t => ({ ...t, value: t.name }))]);
+    // Within each time signature, slowest on the left, fastest on the right.
+    const avgTempo = t => (t.tempo[0] + t.tempo[1]) / 2;
+    for (const meter of ['4/4', '3/4', '2/4', '6/8']) {
+      groups.push([meter, Tune.TYPES.filter(t => t.meter === meter).sort((a, b) => avgTempo(a) - avgTempo(b)).map(t => ({ ...t, value: t.name }))]);
+    }
     for (const [label, list] of groups) {
       const g = document.createElement('section'); g.className = 'type-group';
       const h = document.createElement('h3'); h.textContent = label; g.appendChild(h);
