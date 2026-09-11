@@ -507,6 +507,21 @@
     if (ev.key === ' ' && synthControl) { ev.preventDefault(); synthControl.play(); }
   });
 
+  // ---- dark mode ----
+  // The <head> script applies the saved/system theme before paint; this just toggles and remembers it.
+  $('theme-toggle').addEventListener('click', () => {
+    const dark = document.documentElement.dataset.theme !== 'dark';
+    if (dark) document.documentElement.dataset.theme = 'dark'; else delete document.documentElement.dataset.theme;
+    try { localStorage.setItem('lsg-theme', dark ? 'dark' : 'light'); } catch (e) { /* ignore */ }
+  });
+  // Follow the system if the user has not chosen explicitly.
+  try {
+    matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ev => {
+      if (localStorage.getItem('lsg-theme')) return;
+      if (ev.matches) document.documentElement.dataset.theme = 'dark'; else delete document.documentElement.dataset.theme;
+    });
+  } catch (e) { /* ignore */ }
+
   // ---- collapsible panels remember their state ----
   document.querySelectorAll('details.collapsible').forEach(d => {
     const k = 'lsg-' + d.id;
