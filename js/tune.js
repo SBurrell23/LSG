@@ -116,7 +116,7 @@ const Tune = (() => {
       desc: 'Fast 12-bar blues with a driving shuffle. Dominant 7ths throughout, busy repeated eighth-note figures.',
       rhythm: { e: 1.6, t: 1.2, q: 1.0, l: 0.6, x: 0.4, s: 0.9 },
       harmony: { form: 'blues', dominant: true, mult: { tritone: 0.5, sus: 0.3 } }, extraPcs: [3, 10] },
-    { name: 'Gospel', gchord: 'bzzbzzbz', meter: '4/4', tempo: [60, 80], minLevel: 4, w: 1.2,
+    { name: 'Gospel', gchord: 'fzczfzcz', meter: '4/4', tempo: [60, 80], minLevel: 4, w: 1.2,
       desc: 'Slow 12/8 feel written with triplets. Rich sevenths, walking slash-bass chords (I/3, IV/5) and passing diminished chords.',
       rhythm: { t: 2.2, l: 1.4, e: 0.8, x: 0.4, s: 0.8 },
       harmony: { mult: { secondary: 1.2, borrowed: 0.8, passingDim: 1.8, tritone: 0.3, slash: 2.0, sus: 1.2 } }, extraPcs: [3] },
