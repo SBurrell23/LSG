@@ -80,17 +80,173 @@ const Tune = (() => {
     return rng.pick([['Up-tempo Swing', 176, 232], ['Medium-Up Swing', 148, 176], ['Bossa Nova', 128, 152], ['Ballad', 54, 68], ['Funk', 92, 112], ['Samba', 176, 208]]);
   }
 
-  const TITLE_ADJ = ['Autumn', 'Blue', 'Midnight', 'Velvet', 'Lazy', 'Crimson', 'Silent', 'Sunday', 'Neon', 'Paper',
-    'Amber', 'Quiet', 'Golden', 'Restless', 'Hollow', 'Winter', 'Distant', 'Tender', 'Late', 'Emerald', 'Northern', 'Scarlet'];
-  const TITLE_NOUN = ['Waltz', 'Lullaby', 'Serenade', 'Steps', 'Moon', 'Rain', 'Avenue', 'Dream', 'Lantern', 'Tide',
-    'Whisper', 'Postcard', 'Window', 'Garden', 'Harbour', 'Skyline', 'Afternoon', 'Ferry', 'Shadows', 'Streetlight', 'Bridge', 'Ember'];
-  const TITLE_TAIL = ['for Nobody', 'on Fifth', 'in Blue', 'at Dusk', 'for Two', 'Revisited', 'in the Rain', 'Uptown', 'in Three', 'Downtown'];
+  // ---- Titles ------------------------------------------------------------------
+  // Pseudo-generated from word pools that match the feel (and lean darker in
+  // minor keys). Templates are picked by weight, then filled from the pools.
+  const NAMES = ['June', 'Ellis', 'Marnie', 'Theo', 'Ruby', 'Sam', 'Lou', 'Nina', 'Otis', 'Pearl', 'Milo', 'Hazel',
+    'Dizzy', 'Bud', 'Frankie', 'Stella', 'Iris', 'Ziggy', 'Mabel', 'Jasper', 'Wendell', 'Delilah', 'Roscoe', 'Ivy',
+    'Ada', 'Cleo', 'Bix', 'Toots', 'Lester', 'Minnie', 'Ollie', 'Ramona', 'Clyde', 'Vera', 'Duke', 'Louie', 'Edie',
+    'Mose', 'Fats', 'Sadie', 'Rufus', 'Greta', 'Hank', 'Lulu', 'Ike', 'Dot', 'Max', 'Wanda', 'Percy', 'Cosmo',
+    'Beatrix', 'Alfie', 'Margot', 'Ezra', 'Opal', 'Ned', 'Tallulah', 'Gus', 'Coco', 'Arlo', 'Fern', 'Rudy', 'Elsie',
+    'Monty', 'Petra', 'Sol', 'Winnie', 'Basil', 'Rosie', 'Chet', 'Marlene', 'Skip', 'Josephine', 'Ira', 'Loretta'];
+  const ODD_NAMES = ['Nobody', 'the Cat', 'the Dog', 'My Landlord', 'the Milkman', 'the Night Shift', 'a Rainy Tuesday',
+    'the Neighbours', 'the Goldfish', 'Whoever Is Listening', 'the Last Bus', 'an Old Friend', 'the Kettle', 'the Pigeons',
+    'the Late Train', 'the Bartender', 'a Stranger', 'the Radiator', 'the Moon', 'Absolutely No One'];
+  const STREETS = ['Fifth', 'Bleecker', 'Main Street', '52nd Street', 'Rampart', 'Basin Street', 'Beale', 'the Bowery',
+    'Sunset', 'Broadway', 'Canal Street', 'the Boardwalk', 'the Fire Escape', 'the Rooftop', 'the Back Porch', 'the Corner',
+    'Lenox Avenue', 'the Night Bus', 'the L Train', 'Frenchmen Street', 'the Pier', 'the Landing'];
+  const TIMES = ['Dusk', 'Dawn', 'Midnight', '3 A.M.', 'Closing Time', 'Twilight', 'Sunset', 'First Light', 'Last Call',
+    'Noon', 'Teatime', 'Half Past Late', 'the Blue Hour', 'Sunrise', 'Bedtime', 'the End of the Night'];
+  const PLACES = ['Bahia', 'Havana', 'Rio', 'Lisbon', 'Cádiz', 'Seville', 'Salvador', 'Recife', 'Tulum', 'Montevideo',
+    'the Islands', 'the Old Quarter', 'the Harbour', 'the Cove', 'Ipanema', 'Cartagena', 'the Marina', 'the Lagoon'];
 
-  function makeTitle(rng, meter) {
-    const r = rng.next();
-    if (r < 0.55) return rng.pick(TITLE_ADJ) + ' ' + rng.pick(TITLE_NOUN.filter(n => meter === '3/4' || n !== 'Waltz'));
-    if (r < 0.8) return rng.pick(TITLE_NOUN) + ' ' + rng.pick(TITLE_TAIL.filter(t => meter === '3/4' || t !== 'in Three'));
-    return rng.pick(['One for', 'Song for', 'Blues for', 'Waiting for']) + ' ' + rng.pick(['June', 'Ellis', 'Marnie', 'Theo', 'the Cat', 'Later', 'Ruby', 'Sam']);
+  const POOLS = {
+    slow: {
+      adj: ['Quiet', 'Tender', 'Distant', 'Lonely', 'Faded', 'Pale', 'Silent', 'Sleepless', 'Hollow', 'Last', 'Late',
+        'Slow', 'Weary', 'Soft', 'Blue', 'Grey', 'Amber', 'Velvet', 'Wistful', 'Gentle', 'Dim', 'Autumn', 'Winter',
+        'Midnight', 'Forgotten', 'Empty', 'Unspoken', 'Fading', 'Borrowed', 'Rainy', 'Paper', 'Threadbare', 'Patient',
+        'Nameless', 'Lingering', 'Starless', 'Frosted', 'Whispered', 'Hushed', 'Long'],
+      noun: ['Lullaby', 'Serenade', 'Prayer', 'Goodbye', 'Letter', 'Photograph', 'Window', 'Rain', 'Fog', 'Snow', 'Ember',
+        'Candle', 'Harbour', 'Lantern', 'Moon', 'Shadow', 'Farewell', 'Sigh', 'Afterglow', 'Twilight', 'Whisper',
+        'Nocturne', 'Reverie', 'Lament', 'Elegy', 'Hymn', 'Overcoat', 'Doorway', 'Streetlight', 'Postcard', 'Telegram',
+        'Balcony', 'Pillow', 'Moth', 'Tide', 'River', 'Bridge', 'Attic', 'Lighthouse', 'Snowfall', 'Lantern', 'Ghost'],
+      templates: [
+        ['{Adj} {Noun}', 30], ['{Noun} for {Name}', 12], ['The Last {Noun}', 8], ['{Noun} at {Time}', 10],
+        ['Song for {Name}', 6], ['Waiting for {Name}', 5], ['Ballad of {Name}', 6], ['Goodbye, {Name}', 5],
+        ['I Remember {Name}', 4], ['{Adj} {Noun} at {Time}', 5], ['Ballad for {OddName}', 5], ['A {Adj} Kind of {Noun}', 4],
+        ['Nothing but {Noun}', 3], ['{Name} in the {Where}', 4], ['One More {Noun}', 4], ['If You Forget {Name}', 3],
+      ],
+    },
+    waltz: {
+      adj: ['Little', 'Crooked', 'Tipsy', 'Wobbly', 'Sleepy', 'Dusty', 'Paper', 'Tin', 'Clockwork', 'Velvet', 'Midnight',
+        'Sunday', 'Lopsided', 'Dizzy', 'Wandering', 'Backwards', 'Spinning', 'Upside-Down', 'Peppermint', 'Porcelain',
+        'Moonlit', 'Attic', 'Autumn', 'Rainy', 'Crumpled', 'Borrowed', 'Turning', 'Silver'],
+      noun: ['Carousel', 'Music Box', 'Ballroom', 'Chandelier', 'Lantern', 'Snowfall', 'Umbrella', 'Bicycle', 'Kite',
+        'Teacup', 'Merry-Go-Round', 'Ferris Wheel', 'Pocket Watch', 'Spinning Top', 'Accordion', 'Gramophone', 'Puppet',
+        'Slipper', 'Balloon', 'Weathervane', 'Cuckoo Clock', 'Pinwheel', 'Toy Soldier', 'Tea Party', 'Attic'],
+      templates: [
+        ['Waltz for {Name}', 10], ['{Adj} Waltz', 16], ['{Noun} Waltz', 14], ['Waltz in {WaltzIn}', 8],
+        ["{Name}'s Waltz", 6], ['Three for {Name}', 4], ['{Adj} {Noun}', 16], ['Valse for {Name}', 4],
+        ['Waltz for {OddName}', 6], ['The {Adj} {Noun}', 6], ['Last Waltz at {Time}', 4], ['One, Two, {Noun}', 3],
+        ['{Adj} {Noun} Waltz', 6], ['Waltz of the {Nouns}', 4],
+      ],
+    },
+    swing: {
+      adj: ['Uptown', 'Downtown', 'Crosstown', 'Sideways', 'Straight', 'Hip', 'Cool', 'Bright', 'Blue', "Boppin'",
+        "Jumpin'", "Swingin'", 'Quick', 'Loose', 'Sharp', 'Slick', 'Nifty', 'Zippy', 'Back-Alley', 'Late-Night',
+        'Double', 'Crooked', 'Snappy', 'Sneaky', 'Fast', 'Crazy', 'Frantic', 'Nervous', 'Dapper', 'Jaunty', 'Hasty',
+        'Rapid', 'Skittish', 'Rickety', 'Cheeky', 'Restless', 'Wiggly', 'Bouncy', 'Sudden'],
+      noun: ['Steps', 'Shuffle', 'Strut', 'Bounce', 'Riff', 'Groove', 'Hustle', 'Express', 'Detour', 'Shortcut',
+        'Scramble', 'Runaround', 'Rush Hour', 'Cab Ride', 'Hop', 'Stomp', 'Jump', 'Sidestep', 'Zigzag', 'Hopscotch',
+        'Pinball', 'Jackknife', 'Rooftop', 'Getaway', 'Nightcap', 'Escalator', 'Sprint', 'Errand', 'Caper', 'Racket',
+        'Tangle', 'Whirl', 'Chase', 'Shindig', 'Hullabaloo', 'Ricochet', 'Skedaddle', 'Bebop', 'Rumpus', 'Turnaround'],
+      single: ['Confabulation', 'Perambulation', 'Syncopation', 'Escalation', 'Reciprocity', 'Rhubarb', 'Marmalade',
+        'Paprika', 'Nightcap', 'Sidestep', 'Zigzag', 'Hopscotch', 'Pinball', 'Jackknife', 'Rooftopology', 'Discombobulation',
+        'Flapdoodle', 'Kerfuffle', 'Skulduggery', 'Brouhaha', 'Hocus-Pocus', 'Shenanigans', 'Gobbledygook', 'Flibbertigibbet',
+        'Mumbo Jumbo', 'Hodgepodge', 'Whatchamacallit', 'Thingamajig', 'Rigmarole', 'Ballyhoo', 'Bamboozle', 'Lollygag',
+        'Catawampus', 'Hootenanny', 'Hobnob', 'Skedaddle', 'Hornswoggle', 'Doohickey', 'Codswallop', 'Snickersnee'],
+      templates: [
+        ['{Adj} {Noun}', 26], ['{Noun} on {Street}', 12], ['Blues for {Name}', 8], ['One for {Name}', 8],
+        ["{Name}'s {Noun}", 8], ['Take the {Noun}', 5], ["Don't Ask {Name}", 4], ['{Single}', 8],
+        ['{Adj} {Single}', 4], ['Blues for {OddName}', 5], ['{Noun} at {Time}', 5], ['The {Adj} {Noun}', 6],
+        ['{Name} Meets {Name2}', 5], ['{Noun} Number {Num}', 4], ['Anything for {Name}', 3], ['Who Let {Name} In?', 3],
+        ['{Adj} and {Adj2}', 4], ['No More {Nouns}', 3], ['Blues for the {Noun}', 3],
+      ],
+    },
+    latin: {
+      adj: ['Sunlit', 'Golden', 'Salt', 'Warm', 'Lazy', 'Sunday', 'Summer', 'Coral', 'Tropical', 'Coastal', 'Blue',
+        'Green', 'Soft', 'Sleepy', 'Barefoot', 'Sun-Drunk', 'Lemon', 'Turquoise', 'Breezy', 'Hazy', 'Mango', 'Seaside',
+        'Saturday', 'Rooftop', 'Slow', 'Honey', 'Papaya', 'Sugarcane', 'Hibiscus', 'Copper'],
+      noun: ['Breeze', 'Beach', 'Tide', 'Wave', 'Sand', 'Sail', 'Sun', 'Afternoon', 'Hammock', 'Sea Glass', 'Postcard',
+        'Sunset', 'Ferry', 'Harbour', 'Island', 'Palm', 'Seashell', 'Balcony', 'Kite', 'Lemonade', 'Sandal', 'Parasol',
+        'Cabana', 'Coconut', 'Lagoon', 'Sailboat', 'Sunburn', 'Starfish', 'Shoreline', 'Siesta', 'Veranda', 'Daydream',
+        'Terrace', 'Guitar', 'Pelican', 'Boardwalk', 'Orchid'],
+      templates: [
+        ['{Adj} {Noun}', 26], ['{Noun} in {Place}', 12], ['Samba for {Name}', 6], ['Bossa for {Name}', 8],
+        ['One Summer {Noun}', 5], ['Café {Noun}', 5], ['{Name} in {Place}', 6], ['The {Adj} {Noun}', 6],
+        ['{Noun} at {Time}', 6], ['{Adj} {Noun} Bossa', 4], ['Girl from {Place}', 3], ['Boy from {Place}', 3],
+        ['{PlaceName} {Noun}', 6], ['Bossa for {OddName}', 4], ['Two Weeks in {Place}', 3], ['{Adj} Samba', 4],
+        ['Postcard from {Place}', 4], ['Dreaming of {Place}', 3],
+      ],
+    },
+    funk: {
+      adj: ['Greasy', 'Sticky', 'Chunky', 'Nasty', 'Funky', 'Fat', 'Dirty', 'Stanky', 'Deep', 'Low', 'Heavy', 'Chicken',
+        'Crispy', 'Juicy', 'Rubber', 'Sloppy', 'Lumpy', 'Gritty', 'Swampy', 'Bumpy', 'Crunchy', 'Wobbly', 'Slippery', 'Big'],
+      noun: ['Pocket', 'Groove', 'Gravy', 'Grits', 'Biscuit', 'Shuffle', 'Strut', 'Stomp', 'Slap', 'Bounce', 'Bump',
+        'Wiggle', 'Boogaloo', 'Backbeat', 'Boots', 'Sandwich', 'Waffle', 'Pickle', 'Gumbo', 'Jambalaya', 'Chicken',
+        'Meatball', 'Hot Sauce', 'Skillet', 'Noodle', 'Pretzel', 'Doughnut', 'Basement', 'Sneaker', 'Elbow'],
+      templates: [
+        ['{Adj} {Noun}', 26], ['The {Noun}', 8], ["{Name}'s {Noun}", 8], ['Get the {Noun}', 6], ['{Noun} Machine', 6],
+        ['{Adj} {Noun} Strut', 5], ['Pass the {Noun}', 6], ['Too Much {Noun}', 5], ['{Noun} Time', 5],
+        ['Mister {Noun}', 4], ['{Adj} Mama', 3], ['Big {Noun}', 4], ['Do the {Noun}', 6], ['{Noun} on {Street}', 5],
+        ['Who Ate the {Noun}?', 3], ['Extra {Noun}', 3],
+      ],
+    },
+    medium: {
+      adj: ['Autumn', 'Blue', 'Midnight', 'Velvet', 'Lazy', 'Crimson', 'Silent', 'Sunday', 'Neon', 'Paper', 'Amber',
+        'Quiet', 'Golden', 'Restless', 'Hollow', 'Winter', 'Distant', 'Tender', 'Late', 'Emerald', 'Northern', 'Scarlet',
+        'Crooked', 'Sideways', 'Easy', 'Lucky', 'Rainy', 'Uptown', 'Sunday-Morning', 'Half-Asleep', 'Lemon', 'Copper',
+        'Second-Hand', 'Borrowed', 'Cobalt', 'Peculiar', 'Ordinary', 'Purple', 'Tangerine', 'Marmalade'],
+      noun: ['Lullaby', 'Serenade', 'Steps', 'Moon', 'Rain', 'Avenue', 'Dream', 'Lantern', 'Tide', 'Whisper', 'Postcard',
+        'Window', 'Garden', 'Harbour', 'Skyline', 'Afternoon', 'Ferry', 'Shadows', 'Streetlight', 'Bridge', 'Ember',
+        'Doorway', 'Umbrella', 'Sparrow', 'Bicycle', 'Balcony', 'Rooftop', 'Corner', 'Detour', 'Daydream', 'Teacup',
+        'Overcoat', 'Suitcase', 'Newspaper', 'Streetcar', 'Kitchen', 'Radio', 'Pigeon', 'Elevator', 'Lamplight'],
+      templates: [
+        ['{Adj} {Noun}', 30], ['{Noun} on {Street}', 10], ['Song for {Name}', 8], ["{Name}'s Dream", 5],
+        ['{Noun} at {Time}', 8], ['The {Adj} {Noun}', 6], ['One for {Name}', 5], ['{Noun} for {OddName}', 5],
+        ['Just {Noun}', 3], ['{Adj} {Noun} Blues', 4], ['Meet Me on {Street}', 3], ['{Name} and the {Noun}', 4],
+        ['A {Noun} Named {Name}', 3], ['{Adj} and {Adj2}', 3], ['Almost {Noun}', 3],
+      ],
+    },
+  };
+  // Extra vocabulary mixed in for minor keys.
+  const MINOR_ADJ = ['Dark', 'Midnight', 'Noir', 'Crooked', 'Smoky', 'Restless', 'Hollow', 'Haunted', 'Shadowy', 'Black',
+    'Crimson', 'Bitter', 'Sly', 'Sinister', 'Moody', 'Brooding', 'Cold', 'Stormy', 'Thorny', 'Wicked'];
+  const MINOR_NOUN = ['Shadow', 'Alley', 'Raven', 'Storm', 'Mirror', 'Cellar', 'Rumour', 'Secret', 'Gambit', 'Stranger',
+    'Detective', 'Thief', 'Spiral', 'Cobweb', 'Riddle', 'Omen', 'Wolf', 'Fog', 'Maze', 'Trapdoor'];
+  const WALTZ_IN = ['the Rain', 'Blue', 'Three', 'Autumn', 'the Attic', 'Amber', 'Slow Motion', 'the Dark', 'Stockings',
+    'a Minor Key', 'Reverse', 'the Kitchen', 'Moonlight', 'Sepia', 'Half-Light'];
+  const NUMS = ['Two', 'Three', 'Five', 'Seven', 'Nine', 'Eleven', 'Thirteen', 'Forty-Two', 'Ninety-Nine', 'One Hundred'];
+  const WHERE = ['Rain', 'Fog', 'Snow', 'Dark', 'Twilight', 'Afterglow', 'Attic', 'Doorway', 'Harbour', 'Moonlight',
+    'Cold', 'Hallway', 'Kitchen', 'Garden', 'Morning', 'Half-Light', 'Lamplight', 'Quiet'];
+  const plural = w => /(s|x|z|ch|sh)$/.test(w) ? w + 'es' : /[^aeiou]y$/.test(w) ? w.slice(0, -1) + 'ies' : w + 's';
+
+  function moodFor(feelName, meter) {
+    if (meter === '3/4') return 'waltz';
+    if (/Ballad/.test(feelName)) return 'slow';
+    if (/Swing/.test(feelName)) return 'swing';
+    if (/Bossa|Latin|Samba/.test(feelName)) return 'latin';
+    if (/Funk/.test(feelName)) return 'funk';
+    return 'medium';
+  }
+
+  function makeTitle(rng, meter, feelName, mode) {
+    const mood = moodFor(feelName, meter);
+    const pool = POOLS[mood];
+    let adj = pool.adj, noun = pool.noun;
+    if (mode === 'minor' && mood !== 'funk') {
+      // Minor keys borrow the darker words (roughly a third of the pool).
+      adj = adj.concat(MINOR_ADJ, MINOR_ADJ); noun = noun.concat(MINOR_NOUN);
+    }
+    // Slow waltzes lean on the ballad vocabulary.
+    if (mood === 'waltz' && /Slow/.test(feelName)) { adj = adj.concat(POOLS.slow.adj); noun = noun.concat(POOLS.slow.noun); }
+    const template = rng.weighted(pool.templates);
+    const used = new Set();
+    const pickFresh = list => {
+      let w = rng.pick(list), tries = 0;
+      while (used.has(w) && tries++ < 8) w = rng.pick(list);
+      used.add(w); return w;
+    };
+    const fill = {
+      Adj: () => pickFresh(adj), Adj2: () => pickFresh(adj), Noun: () => pickFresh(noun),
+      Name: () => pickFresh(NAMES), Name2: () => pickFresh(NAMES), OddName: () => pickFresh(ODD_NAMES),
+      Street: () => rng.pick(STREETS), Time: () => rng.pick(TIMES), Place: () => rng.pick(PLACES),
+      WaltzIn: () => rng.pick(WALTZ_IN), Single: () => rng.pick(pool.single || POOLS.swing.single), Num: () => rng.pick(NUMS),
+      Nouns: () => plural(pickFresh(noun)), Where: () => rng.pick(WHERE),
+      PlaceName: () => rng.pick(PLACES.filter(x => !/^the /.test(x))),
+    };
+    const title = template.replace(/\{(\w+)\}/g, (m, k) => (fill[k] ? fill[k]() : m));
+    return title.charAt(0).toUpperCase() + title.slice(1);
   }
 
   // ---- Chord-tone spelling ------------------------------------------------------
@@ -220,7 +376,7 @@ const Tune = (() => {
     const sections = Melody.generate(rng, melodyLevel, harmony, form, barLen, key);
     const [feelName, tLo, tHi] = feel(rng, Math.round((chordsLevel + melodyLevel) / 2), meter);
     const tempo = Math.round(rng.int(tLo, tHi) / 2) * 2;
-    const title = makeTitle(rng, meter);
+    const title = makeTitle(rng, meter, feelName, key.mode);
     const level = Math.max(chordsLevel, melodyLevel);
     const tune = { title, level, chordsLevel, melodyLevel, seed, meter, key, tempo, feelName, sections, form };
     tune.abc = toAbc(tune);
