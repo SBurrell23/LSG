@@ -82,6 +82,19 @@ body {
 .brand h1 { margin: 0; font-family: var(--serif); font-weight: 700; font-size: 26px; letter-spacing: -0.01em; }
 .brand p { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
 
+/* ---- companion link (next to the theme toggle) ---- */
+.top-actions { display: flex; align-items: center; gap: 10px; }
+.site-link {
+  display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 14px; border-radius: 12px;
+  border: 1px solid var(--line); background: var(--paper); color: var(--ink); text-decoration: none;
+  font: 600 13px/1 var(--sans); box-shadow: 0 1px 3px rgba(var(--shadow-rgb), 0.12); transition: background .15s, border-color .15s;
+}
+.site-link:hover { background: var(--hover); border-color: var(--accent); }
+.site-link svg { width: 16px; height: 16px; color: var(--accent); }
+.site-link .lnk-short { display: none; }
+@media (max-width: 560px) { .site-link .lnk-long { display: none; } .site-link .lnk-short { display: inline; } .site-link { padding: 0 10px; } }
+@media print { .top-actions { display: none !important; } }
+
 /* ---- theme toggle ---- */
 .theme-btn {
   width: 42px; height: 42px; border-radius: 12px; border: 1px solid var(--line); background: var(--paper); color: var(--ink);
