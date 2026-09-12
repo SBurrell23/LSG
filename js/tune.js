@@ -540,11 +540,12 @@ const Tune = (() => {
     const type = styleByName(opts.style || opts.type) || pickStyle(rng, avgLevel);
     const meter = type.meter;
     const feelName = type.name;
-    const barLen = meter === '3/4' ? 12 : meter === '2/4' ? 8 : meter === '6/8' ? 24 : 16;
+    const barLen = meter === '3/4' ? 12 : meter === '2/4' ? 8 : meter === '6/8' ? 12 : 16;
+    const beat = meter === '6/8' ? 6 : 4;
 
     const form = makeForm(rng, chordsLevel, key, type);
     const harmony = Harmony.generate(rng, chordsLevel, form, meter, type.harmony || {});
-    const sections = Melody.generate(rng, melodyLevel, harmony, form, barLen, key, { rhythm: type.rhythm || {}, extraPcs: type.extraPcs || [] });
+    const sections = Melody.generate(rng, melodyLevel, harmony, form, barLen, key, { rhythm: type.rhythm || {}, extraPcs: type.extraPcs || [] }, beat);
     const tempo = tempoFor(rng, avgLevel, type);
     const title = makeTitle(rng, meter, feelName, key.mode);
     const level = Math.max(chordsLevel, melodyLevel);

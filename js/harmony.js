@@ -127,8 +127,8 @@ const Harmony = (() => {
     return rng.weighted(options.length ? options : pool.filter(t => templateAllowed(t, level)).map(t => [t, t.w]));
   }
   // Lay a template out over 4 bars as [[token, dur], ...] per bar.
-  function renderTemplate(tpl, barLen) {
-    const half = barLen === 12 ? [8, 4] : barLen === 8 ? [4, 4] : barLen === 24 ? [12, 12] : [8, 8];
+  function renderTemplate(tpl, barLen, beat) {
+    const half = halves(barLen, beat);
     const bars = [];
     if (tpl.s.length === 2) for (const tok of tpl.s) { bars.push([[tok, barLen]]); bars.push([[tok, barLen]]); }
     else if (tpl.s.length === 4) for (const tok of tpl.s) bars.push([[tok, barLen]]);
@@ -136,8 +136,8 @@ const Harmony = (() => {
     return bars;
   }
   // Rewrite the last bar(s) of a phrase to make the requested cadence.
-  function applyCadence(rng, level, bars, cadence, barLen) {
-    const half = barLen === 12 ? [8, 4] : barLen === 8 ? [4, 4] : barLen === 24 ? [12, 12] : [8, 8];
+  function applyCadence(rng, level, bars, cadence, barLen, beat) {
+    const half = halves(barLen, beat);
     const two = (x, y) => [[x, half[0]], [y, half[1]]];
     const one = x => [[x, barLen]];
     const n = bars.length;
@@ -214,7 +214,8 @@ const Harmony = (() => {
   //   form     'blues' selects the fixed 12-bar template instead of the Markov walk
   //   mult     per-decoration probability multipliers: secondary, borrowed, passingDim, tritone, slash, sus
   function generate(rng, level, form, meter, profile = {}) {
-    const barLen = meter === '3/4' ? 12 : meter === '2/4' ? 8 : meter === '6/8' ? 24 : 16;
+    const barLen = meter === '3/4' ? 12 : meter === '2/4' ? 8 : meter === '6/8' ? 12 : 16;
+    const beat = meter === '6/8' ? 6 : 4; // 6/8 counts two dotted-quarter beats
     const sections = [];
     for (const sec of form) {
       if (sec.reuse !== undefined) {
@@ -227,19 +228,19 @@ const Harmony = (() => {
         }))) };
         if (sec.cadence !== form[sec.reuse].cadence) {
           const endBars = Math.min(2, copy.bars.length);
-          const fresh = generateSection(rng, level, sec, barLen, profile);
+          const fresh = generateSection(rng, level, sec, barLen, profile, beat);
           for (let i = 1; i <= endBars; i++) copy.bars[copy.bars.length - i] = fresh.bars[fresh.bars.length - i];
         }
         sections.push(copy);
         continue;
       }
-      sections.push(generateSection(rng, level, sec, barLen, profile));
+      sections.push(generateSection(rng, level, sec, barLen, profile, beat));
     }
     return sections;
   }
 
-  function generateSection(rng, level, sec, barLen, profile) {
-    if (profile.form === 'blues') return generateBlues(rng, level, sec, barLen, profile);
+  function generateSection(rng, level, sec, barLen, profile, beat = 4) {
+    if (profile.form === 'blues') return generateBlues(rng, level, sec, barLen, profile, beat);
     const key = sec.key;
     const nBars = sec.bars;
     const mult = k => (profile.mult && profile.mult[k] !== undefined) ? profile.mult[k] : 1;
@@ -253,9 +254,9 @@ const Harmony = (() => {
       const isLastPhrase = ph === phrases - 1;
       const tpl = ph > 0 && prevTpl && rng.chance(0.45) ? prevTpl : pickTemplate(rng, level, pool, profile, prevTpl);
       prevTpl = tpl;
-      let bars = renderTemplate(tpl, barLen);
-      if (isLastPhrase) bars = applyCadence(rng, level, bars, sec.cadence, barLen);
-      else if (rng.chance(0.3)) bars = applyCadence(rng, level, bars, rng.weighted([['half', 3], ['deceptive', level >= 2 ? 2 : 0], ['plagal', 1.5]]), barLen);
+      let bars = renderTemplate(tpl, barLen, beat);
+      if (isLastPhrase) bars = applyCadence(rng, level, bars, sec.cadence, barLen, beat);
+      else if (rng.chance(0.3)) bars = applyCadence(rng, level, bars, rng.weighted([['half', 3], ['deceptive', level >= 2 ? 2 : 0], ['plagal', 1.5]]), barLen, beat);
       bars.forEach((bar, bi) => {
         let pos = 0;
         for (const [tok, dur] of bar) { chords.push(tokenToChord(tok, key, level, rng, profile, ph * 4 + bi, pos, dur)); pos += dur; }
@@ -269,17 +270,17 @@ const Harmony = (() => {
     chords = mergeRepeats(chords);
 
     // --- decorations, each gated by level and scaled by the type profile ---
-    if (level >= 6 && mult('secondary') > 0) chords = secondaryDominants(rng, level, key, chords, barLen, mult('secondary'));
+    if (level >= 6 && mult('secondary') > 0) chords = secondaryDominants(rng, level, key, chords, barLen, mult('secondary'), beat);
     if (level >= 8 && mult('borrowed') > 0) chords = modalInterchange(rng, level, key, chords, sec, mult('borrowed'));
-    if (level >= 9 && mult('passingDim') > 0) chords = passingDiminished(rng, level, key, chords, barLen, mult('passingDim'));
+    if (level >= 9 && mult('passingDim') > 0) chords = passingDiminished(rng, level, key, chords, barLen, mult('passingDim'), beat);
     if (level >= 10 && mult('tritone') > 0) chords = tritoneSubs(rng, level, key, chords, mult('tritone'));
     if (level >= 8 && mult('slash') > 0) chords = slashChords(rng, level, key, chords, mult('slash'));
-    if (level >= 6 && mult('sus') > 0) chords = susColour(rng, level, chords, barLen, mult('sus'));
+    if (level >= 6 && mult('sus') > 0) chords = susColour(rng, level, chords, barLen, mult('sus'), beat);
 
     // A modulated section returns home through the home key's ii–V.
     if (sec.returnKey && sec.cadence === 'half') {
       const hk = sec.returnKey;
-      const half = barLen === 12 ? [8, 4] : barLen === 8 ? [4, 4] : barLen === 24 ? [12, 12] : [8, 8];
+      const half = halves(barLen, beat);
       chords = chords.filter(c => c.bar !== nBars - 1);
       chords.push({ root: degreeRoot(hk, 1), quality: hk.mode === 'major' ? 'm7' : 'm7b5', bar: nBars - 1, pos: 0, dur: half[0], degree: 1, diatonic: false, key: hk });
       chords.push({ root: degreeRoot(hk, 4), quality: hk.mode === 'major' ? '7' : '7b9', bar: nBars - 1, pos: half[0], dur: half[1], degree: 4, diatonic: false, key: hk });
@@ -292,8 +293,10 @@ const Harmony = (() => {
   }
 
   // How to split a chord slot in two so every piece is still fillable by rhythm cells.
-  function splitDur(dur, barLen) {
-    if (barLen === 24) return dur === 24 ? [12, 12] : dur === 12 ? [6, 6] : null; // 6/8: split on the dotted-quarter beat
+  // How the bar splits in two: on the beat in 6/8, otherwise by halves (3/4 gives 2+1 beats).
+  const halves = (barLen, beat) => beat === 6 ? [6, 6] : barLen === 12 ? [8, 4] : barLen === 8 ? [4, 4] : [8, 8];
+  function splitDur(dur, beat) {
+    if (beat === 6) return dur === 12 ? [6, 6] : null; // 6/8: split on the dotted-quarter beat
     if (dur % 8 === 0) return [dur / 2, dur / 2];
     if (dur === 12) return [8, 4];
     return null;
@@ -307,7 +310,7 @@ const Harmony = (() => {
   //   7-8  jazz blues: #IVdim7 in bar 6, VI7 in bar 8, ii7 V7 in bars 9-10
   //   9-10 v7 I7 leading to the IV in bar 4, iii7 VI7 in bar 8, tritone subs
   // Minor keys use the minor blues: i7 iv7 ... bVI7 V7.
-  function generateBlues(rng, level, sec, barLen, profile) {
+  function generateBlues(rng, level, sec, barLen, profile, beat = 4) {
     const key = sec.key, T = key.tonic, minor = key.mode === 'minor';
     const mult = k => (profile.mult && profile.mult[k] !== undefined) ? profile.mult[k] : 1;
     const q7 = level >= 3 ? '7' : '';
@@ -341,7 +344,7 @@ const Harmony = (() => {
     let chords = [];
     bars.forEach((bar, b) => bar.forEach(c => chords.push({ ...c, bar: b })));
     if (level >= 10 && mult('tritone') > 0) chords = tritoneSubs(rng, level, key, chords, mult('tritone'));
-    if (level >= 6 && mult('sus') > 0) chords = susColour(rng, level, chords, barLen, mult('sus'));
+    if (level >= 6 && mult('sus') > 0) chords = susColour(rng, level, chords, barLen, mult('sus'), beat);
     const out = Array.from({ length: bars.length }, () => []);
     for (const c of chords) out[c.bar].push(c);
     return { key, bars: out };
@@ -359,13 +362,13 @@ const Harmony = (() => {
   }
 
   // Insert V7/X (or ii–V/X) before a chord X.
-  function secondaryDominants(rng, level, key, chords, barLen, m = 1) {
+  function secondaryDominants(rng, level, key, chords, barLen, m = 1, beat = 4) {
     const p = Math.min(0.9, [0.18, 0.28, 0.35, 0.42, 0.45][Math.min(level, 10) - 6] * m);
     const out = [];
     for (let i = 0; i < chords.length; i++) {
       const c = chords[i];
       const next = chords[i + 1];
-      const split = splitDur(c.dur, barLen);
+      const split = splitDur(c.dur, beat);
       const canSplit = split && (level >= 9 ? c.dur >= barLen / 2 : c.dur >= barLen);
       if (next && canSplit && next.quality !== 'dim' && next.quality !== 'm7b5' && next.quality !== 'dim7'
           && !isDominant(c.quality) && next.degree !== c.degree && rng.chance(p)) {
@@ -410,12 +413,12 @@ const Harmony = (() => {
   }
 
   // C – C#dim7 – Dm7 style passing chords when roots ascend by a whole step.
-  function passingDiminished(rng, level, key, chords, barLen, m = 1) {
+  function passingDiminished(rng, level, key, chords, barLen, m = 1, beat = 4) {
     const p = Math.min(0.9, (level === 9 ? 0.22 : 0.3) * m);
     const out = [];
     for (let i = 0; i < chords.length; i++) {
       const c = chords[i], next = chords[i + 1];
-      const split = splitDur(c.dur, barLen);
+      const split = splitDur(c.dur, beat);
       if (next && split && c.dur >= barLen / 2 && mod(next.root - c.root, 12) === 2
           && !isDominant(c.quality) && rng.chance(p)) {
         const [d1, d2] = split;
@@ -459,12 +462,12 @@ const Harmony = (() => {
   }
 
   // Occasional 7sus4 resolving to 7 (splits a dominant slot).
-  function susColour(rng, level, chords, barLen, m = 1) {
+  function susColour(rng, level, chords, barLen, m = 1, beat = 4) {
     const p = Math.min(0.9, (level <= 8 ? 0.1 : 0.16) * m);
     const out = [];
     for (let i = 0; i < chords.length; i++) {
       const c = chords[i];
-      const split = splitDur(c.dur, barLen);
+      const split = splitDur(c.dur, beat);
       if (c.quality === '7' && split && c.dur >= 8 && !c.tritone && rng.chance(p)) {
         const [d1, d2] = split;
         out.push({ ...c, quality: '7sus4', dur: d1 });

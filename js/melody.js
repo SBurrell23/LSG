@@ -107,8 +107,6 @@ const Melody = (() => {
     { d: [8, 4],          t: 'l',  w: l => l < 3 ? 0 : 1.5 },
     { d: [4, 8],          t: 's',  w: l => l < 5 ? 0 : 0.8 },
     { d: [10, 2],         t: 'd',  w: l => l < 4 ? 0 : 1 },
-    // whole bar
-    { d: [24],            t: 'l',  w: l => at([2, 1.5, 1, 0.5, 0.3, 0.2, 0.2], l) },
   ];
   const cellLen = d => d.reduce((a, x) => a + (x === 't' ? 4 : Math.abs(x)), 0);
 
@@ -140,17 +138,13 @@ const Melody = (() => {
     4: [{ d: [4], w: l => 3 }, { d: [2, -2], w: l => l < 5 ? 0 : 1 }, { d: [-2, 2], w: l => l < 7 ? 0 : 0.5 }],
   };
   const ENDINGS_68 = {
-    24: [
-      { d: [24], w: l => l < 4 ? 4 : 2 }, { d: [18, -6], w: l => 3 }, { d: [12, -12], w: l => 2 },
-      { d: [12, 6, -6], w: l => l < 3 ? 0 : 2 }, { d: [6, 6, 12], w: l => l < 3 ? 0 : 1.5 },
-      { d: [4, 2, 18], w: l => l < 5 ? 0 : 1.5 }, { d: [6, -18], w: l => l < 6 ? 0 : 1 },
-    ],
     12: [
-      { d: [12], w: l => 3 }, { d: [6, -6], w: l => 2 }, { d: [4, 2, 6], w: l => l < 3 ? 0 : 1.5 },
-      { d: [2, 2, 2, 6], w: l => l < 5 ? 0 : 1 },
+      { d: [12], w: l => l < 4 ? 4 : 2 }, { d: [6, -6], w: l => 3 }, { d: [8, -4], w: l => 1.5 },
+      { d: [4, 2, 6], w: l => l < 3 ? 0 : 2 }, { d: [2, 2, 2, 6], w: l => l < 5 ? 0 : 1.5 }, { d: [10, -2], w: l => l < 4 ? 0 : 1 },
     ],
     6: [{ d: [6], w: l => 3 }, { d: [4, 2], w: l => 1 }, { d: [2, -4], w: l => l < 5 ? 0 : 0.5 }],
   };
+
 
   function expandCell(d, pos) {
     const out = [];
@@ -428,11 +422,10 @@ const Melody = (() => {
   // sections: from Harmony.generate, plus form info. Returns sections with
   // .bars[b] = { chords, events }.
   // profile: the style's melody profile — { rhythm: { tag: factor }, extraPcs: [semitones above the tonic] }
-  function generate(rng, uiLevel, sections, form, barLen, homeKey, profile = {}) {
+  function generate(rng, uiLevel, sections, form, barLen, homeKey, profile = {}, beat = 4) {
     const level = internalLevel(uiLevel);
     const P = params(level);
-    const beat = barLen === 24 ? 6 : 4;
-    const ctx = { cells: barLen === 24 ? CELLS_68 : CELLS, endings: barLen === 24 ? ENDINGS_68 : ENDINGS,
+    const ctx = { cells: beat === 6 ? CELLS_68 : CELLS, endings: beat === 6 ? ENDINGS_68 : ENDINGS,
                   beat, barLen, prof: profile.rhythm || {} };
     P.beat = beat;
     P.extraPcs = (profile.extraPcs || []).map(i => mod(homeKey.tonic + i, 12));
