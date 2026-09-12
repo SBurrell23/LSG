@@ -51,11 +51,10 @@ const Tune = (() => {
       ];
     }
     if (level <= 3) {
-      const bStart = level >= 3 ? rng.pick([3, 3, 1, 5]) : 3;
       return [
         { name: 'A', bars: 4, cadence: 'half', key: home },
         { name: 'A', bars: 4, cadence: 'full', key: home, reuse: 0 },
-        { name: 'B', bars: 4, cadence: 'half', key: home, startDegree: bStart },
+        { name: 'B', bars: 4, cadence: 'half', key: home },
         { name: 'A', bars: 4, cadence: 'final', key: home, reuse: 0 },
       ];
     }
@@ -69,11 +68,10 @@ const Tune = (() => {
       bKey = keyFromTonic(mod(home.tonic + iv, 12), mode, home.fifths);
       returnKey = home;
     }
-    const bStart = rng.pick(bKey === home ? [3, 1, 5, 3] : [0, 0, 3]);
     return [
       { name: 'A', bars: 8, cadence: 'turnaround', key: home },
       { name: 'A', bars: 8, cadence: 'full', key: home, reuse: 0 },
-      { name: 'B', bars: 8, cadence: 'half', key: bKey, returnKey, startDegree: bStart },
+      { name: 'B', bars: 8, cadence: 'half', key: bKey, returnKey },
       { name: 'A', bars: 8, cadence: 'final', key: home, reuse: 0 },
     ];
   }
@@ -479,6 +477,8 @@ const Tune = (() => {
     sections.forEach(sec => sec.bars.forEach(bar => bar.events.forEach(e => flat.push(e))));
     const pitched = flat.filter(e => !e.rest);
     pitched.forEach((e, i) => { e._prev = i > 0 ? pitched[i - 1].pitch : null; e._next = i + 1 < pitched.length ? pitched[i + 1].pitch : null; });
+    // A tied (suspended) note is written as a tie from the note before it.
+    flat.forEach((e, i) => { e._tieNext = !!(flat[i + 1] && flat[i + 1].tied && !e.rest && flat[i + 1].pitch === e.pitch); });
 
     let firstLine = true;
     sections.forEach((sec, si) => {
@@ -503,7 +503,7 @@ const Tune = (() => {
           const current = id in inForce ? inForce[id] : keySigAcc(sp.letter, secKey);
           let accStr = '';
           if (current !== sp.acc) { accStr = sp.acc === 0 ? '=' : ap.acc; inForce[id] = sp.acc; }
-          barStr += accStr + ap.name + len;
+          barStr += accStr + ap.name + len + (e._tieNext ? '-' : '');
         });
         line += barStr;
         const lastBarOfTune = si === sections.length - 1 && b === sec.bars.length - 1;

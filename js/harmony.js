@@ -21,18 +21,6 @@ const Harmony = (() => {
   // Minor V is raised-7th based: root is the 5th degree, but the leading tone
   // lives in the chord quality, so the root pc is unchanged.
 
-  // Markov transitions between scale degrees (0-based).  Weighted by
-  // function: tonic -> anything, pre-dominant -> dominant, dominant -> tonic.
-  const TRANSITIONS = [
-    /* I   */ [[3, 25], [4, 20], [5, 20], [1, 15], [2, 10], [0, 8], [6, 2]],
-    /* ii  */ [[4, 60], [3, 10], [6, 8], [2, 8], [0, 10], [5, 4]],
-    /* iii */ [[5, 45], [3, 30], [1, 20], [4, 5]],
-    /* IV  */ [[4, 40], [0, 25], [1, 20], [5, 8], [2, 5], [6, 2]],
-    /* V   */ [[0, 60], [5, 22], [3, 10], [1, 8]],
-    /* vi  */ [[1, 30], [3, 35], [4, 20], [2, 10], [0, 5]],
-    /* vii */ [[0, 65], [2, 25], [5, 10]],
-  ];
-
   // Which degrees are allowed at each level (1-10).
   function allowedDegrees(level) {
     if (level <= 1) return [0, 3, 4];
@@ -46,60 +34,141 @@ const Harmony = (() => {
     return mod(key.tonic + scale[degree] + alt, 12);
   }
 
-  // ---- Harmonic rhythm ---------------------------------------------------
-  // Returns an array of slot lengths (in 16ths) for one bar.
-  function barSlots(rng, level, barLen, role, profile) {
-    // role: 'normal' | 'cadence' | 'final' | 'turnaround'
-    if (role === 'final') return [barLen];
-    const half = barLen / 2;
-    let pTwo;
-    if (level <= 2) pTwo = 0;
-    else if (level === 3) pTwo = role === 'cadence' ? 0.35 : 0.08;
-    else if (level === 4) pTwo = role === 'cadence' ? 0.5 : 0.12;
-    else if (level <= 6) pTwo = role === 'cadence' ? 0.6 : 0.25;
-    else if (level <= 8) pTwo = role === 'cadence' ? 0.6 : 0.35;
-    else pTwo = 0.45;
-    if (barLen === 8) pTwo *= 0.5; // 2/4: two chords a bar means one per beat, keep it rarer
-    if (profile.rate !== undefined) pTwo *= profile.rate; // type: how busy the chord changes are
-    if (role === 'turnaround' && level >= 4) pTwo = 1;
-    if (rng.chance(pTwo)) {
-      if (barLen === 12) return rng.chance(0.5) ? [8, 4] : [4, 8];
-      return [half, half];
-    }
-    return [barLen];
+  // ---- Progression idioms -----------------------------------------------------
+  // Instead of a random walk over chords, every 4-bar phrase is built from a
+  // recognisable shape. Tokens are roman numerals relative to the key:
+  //   I..VII      diatonic degrees (quality comes from the key and level)
+  //   iv          borrowed minor iv         I7 II7 III7 VI7   dominant on that degree
+  //   bII bIII bVI bVII   flat-side borrowed chords
+  //   X/n         the chord over scale degree n in the bass (I/3 = C/E in C)
+  // A template's length sets its harmonic rhythm: 2 tokens = a chord every two
+  // bars, 4 = one per bar, 8 = two per bar. `min` is the first level it appears at.
+  const TEMPLATES = [
+    // simple (level 1+): I, IV, V only
+    { s: ['I', 'V'], w: 1.5, min: 1 }, { s: ['I', 'IV'], w: 1.2, min: 1 },
+    { s: ['I', 'IV', 'V', 'I'], w: 2, min: 1 }, { s: ['I', 'I', 'IV', 'V'], w: 2, min: 1 },
+    { s: ['I', 'IV', 'I', 'V'], w: 2, min: 1 }, { s: ['I', 'V', 'I', 'IV'], w: 1, min: 1 },
+    { s: ['IV', 'I', 'V', 'I'], w: 1, min: 1 }, { s: ['I', 'IV', 'V', 'IV'], w: 1, min: 1 },
+    // pop (level 2+): adds ii and vi
+    { s: ['I', 'V', 'vi', 'IV'], w: 3, min: 2 }, { s: ['vi', 'IV', 'I', 'V'], w: 2.5, min: 2 },
+    { s: ['I', 'vi', 'IV', 'V'], w: 3, min: 2 }, { s: ['I', 'IV', 'vi', 'V'], w: 2, min: 2 },
+    { s: ['IV', 'I', 'V', 'vi'], w: 1.2, min: 2 }, { s: ['I', 'vi', 'ii', 'V'], w: 2.5, min: 2 },
+    { s: ['vi', 'ii', 'V', 'I'], w: 1.2, min: 2 }, { s: ['I', 'ii', 'IV', 'V'], w: 1.5, min: 2 },
+    { s: ['vi', 'vi', 'IV', 'V'], w: 1, min: 2 }, { s: ['I', 'I', 'vi', 'vi'], w: 0.8, min: 2 },
+    { s: ['ii', 'V', 'I', 'vi'], w: 1, min: 2 }, { s: ['I', 'V', 'ii', 'IV'], w: 0.8, min: 2 },
+    { s: ['I', 'vi'], w: 1, min: 2 }, { s: ['vi', 'IV'], w: 0.8, min: 2 },
+    // classic / circle of fifths (level 3+): adds iii
+    { s: ['I', 'iii', 'IV', 'V'], w: 1.5, min: 3 }, { s: ['iii', 'vi', 'ii', 'V'], w: 1.5, min: 3 },
+    { s: ['I', 'iii', 'vi', 'IV'], w: 1.2, min: 3 }, { s: ['I', 'IV', 'iii', 'vi'], w: 1, min: 3 },
+    { s: ['I', 'vi', 'iii', 'IV'], w: 0.8, min: 3 }, { s: ['IV', 'V', 'iii', 'vi'], w: 1.5, min: 3 },
+    { s: ['ii', 'iii', 'IV', 'V'], w: 0.8, min: 3 }, { s: ['I', 'iii', 'ii', 'V'], w: 1, min: 3 },
+    // two chords a bar (level 4+)
+    { s: ['I', 'vi', 'ii', 'V', 'I', 'vi', 'ii', 'V'], w: 1.5, min: 4 },
+    { s: ['I', 'IV', 'I', 'V', 'I', 'IV', 'V', 'I'], w: 1, min: 4 },
+    { s: ['I', 'vi', 'IV', 'V', 'iii', 'vi', 'ii', 'V'], w: 1.2, min: 5 },
+    { s: ['I', 'V', 'vi', 'iii', 'IV', 'I', 'ii', 'V'], w: 1.2, min: 5 },
+    { s: ['I', 'iii', 'vi', 'I', 'IV', 'V', 'iii', 'vi'], w: 0.8, min: 5 },
+    // bass lines (level 5+)
+    { s: ['I', 'V/7', 'vi', 'I/5'], w: 1.5, min: 5 }, { s: ['IV', 'I/3', 'ii', 'V'], w: 1.2, min: 5 },
+    { s: ['I', 'I/3', 'IV', 'IV/5'], w: 0.8, min: 5 }, { s: ['vi', 'I/5', 'IV', 'I/3'], w: 0.8, min: 5 },
+    { s: ['I', 'V/7', 'vi', 'I/5', 'IV', 'I/3', 'ii', 'V'], w: 1, min: 6 },
+    // secondary dominants written in (level 6+)
+    { s: ['I', 'VI7', 'ii', 'V'], w: 1.5, min: 6 }, { s: ['I', 'III7', 'vi', 'II7'], w: 0.8, min: 6 },
+    { s: ['ii', 'V', 'I', 'VI7'], w: 1, min: 6 }, { s: ['I', 'I7', 'IV', 'iv'], w: 1.2, min: 6 },
+    { s: ['I', 'VI7', 'ii', 'V', 'iii', 'VI7', 'ii', 'V'], w: 0.8, min: 7 },
+    // modal / borrowed (level 7+)
+    { s: ['I', 'bVII', 'IV', 'I'], w: 1.2, min: 7 }, { s: ['I', 'IV', 'iv', 'I'], w: 1, min: 7 },
+    { s: ['vi', 'bVI', 'I', 'V'], w: 0.6, min: 8 }, { s: ['I', 'bIII', 'IV', 'bVII'], w: 0.7, min: 8 },
+    { s: ['IV', 'iv', 'I', 'bVII'], w: 0.6, min: 8 }, { s: ['I', 'bVI', 'bVII', 'I'], w: 0.7, min: 8 },
+  ];
+  // Bridges start somewhere other than the tonic.
+  const BRIDGES = [
+    { s: ['IV', 'IV', 'I', 'I'], w: 2, min: 1 }, { s: ['IV', 'V', 'I', 'I'], w: 1.5, min: 1 }, { s: ['IV', 'I', 'IV', 'V'], w: 1.2, min: 1 },
+    { s: ['IV', 'V', 'iii', 'vi'], w: 2, min: 3 }, { s: ['ii', 'V', 'I', 'I'], w: 1.5, min: 2 }, { s: ['vi', 'vi', 'ii', 'V'], w: 1.5, min: 2 },
+    { s: ['vi', 'IV', 'ii', 'V'], w: 1.2, min: 2 }, { s: ['IV', 'IV', 'ii', 'V'], w: 1.2, min: 2 }, { s: ['iii', 'vi', 'ii', 'V'], w: 1.2, min: 3 },
+    { s: ['IV', 'V/7', 'vi', 'I/5'], w: 1, min: 5 }, { s: ['ii', 'V', 'iii', 'VI7'], w: 1, min: 6 },
+    { s: ['IV', 'iv', 'I', 'I'], w: 1, min: 7 }, { s: ['bVI', 'bVII', 'I', 'I'], w: 0.8, min: 8 },
+  ];
+  const NUMERAL = { I: 0, II: 1, III: 2, IV: 3, V: 4, VI: 5, VII: 6 };
+  const SPECIAL = {  // non-diatonic tokens: degree, alteration, quality family, first level
+    iv: { deg: 3, alt: 0, q: 'm', min: 6 },
+    I7: { deg: 0, alt: 0, q: '7', min: 6 }, II7: { deg: 1, alt: 0, q: '7', min: 6 },
+    III7: { deg: 2, alt: 0, q: '7', min: 6 }, VI7: { deg: 5, alt: 0, q: '7', min: 6 },
+    bII: { deg: 1, alt: -1, q: '7', min: 9 }, bIII: { deg: 2, alt: -1, q: 'maj', min: 8 },
+    bVI: { deg: 5, alt: -1, q: 'maj', min: 8 }, bVII: { deg: 6, alt: -1, q: '7', min: 7 },
+  };
+  function parseToken(tok) {
+    const [chord, bass] = tok.split('/');
+    const sp = SPECIAL[chord];
+    if (sp) return { ...sp, bass: bass ? parseInt(bass, 10) - 1 : undefined, special: chord };
+    return { deg: NUMERAL[chord.toUpperCase()], alt: 0, bass: bass ? parseInt(bass, 10) - 1 : undefined, min: bass ? 5 : 1 };
   }
-
-  // ---- Base progression --------------------------------------------------
-  // Generates degree indices for `n` slots, ending according to `cadence`.
-  function generateDegrees(rng, level, n, cadence, startDegree) {
+  function templateAllowed(tpl, level) {
+    if (level < tpl.min) return false;
     const allowed = allowedDegrees(level);
-    const degrees = [];
-    let cur = startDegree !== undefined ? startDegree : 0;
-    // Number of slots reserved for the cadence.
-    const tail = cadence === 'half' ? 1 : 2;
-    for (let i = 0; i < n - tail; i++) {
-      if (i === 0) { cur = startDegree !== undefined ? startDegree : 0; degrees.push(cur); continue; }
-      const options = TRANSITIONS[cur].filter(([d]) => allowed.includes(d));
-      // Avoid landing on I right before the cadence starts (weak).
-      const filtered = i === n - tail - 1 ? options.filter(([d]) => d !== 0 || options.length === 1) : options;
-      cur = rng.weighted(filtered.length ? filtered : options);
-      degrees.push(cur);
-    }
-    if (cadence === 'half') {
-      // pre-dominant -> V  (the V is the last slot)
-      degrees.push(4);
-    } else if (cadence === 'full' || cadence === 'final') {
-      // ... -> (ii or IV) -> V -> I  when room, else V -> I
-      if (n >= 4 && level >= 2) {
-        degrees[n - 3] = rng.pick(level >= 3 ? [1, 1, 3, 5] : [3, 3, 1]);
+    return tpl.s.every(tok => { const p = parseToken(tok); return level >= p.min && (p.special ? true : allowed.includes(p.deg)); });
+  }
+  function pickTemplate(rng, level, pool, profile, avoid) {
+    const rate = profile.rate !== undefined ? profile.rate : 1;
+    const options = pool.filter(t => templateAllowed(t, level) && t !== avoid).map(t => {
+      let w = t.w;
+      if (t.s.length === 8) w *= level >= 6 ? 1.2 * rate : 0.6 * rate;       // busy harmony later, and per style
+      if (t.s.length === 2) w *= rate < 1 ? 1.8 : 0.8;                        // static harmony for laid-back styles
+      return [t, w];
+    });
+    return rng.weighted(options.length ? options : pool.filter(t => templateAllowed(t, level)).map(t => [t, t.w]));
+  }
+  // Lay a template out over 4 bars as [[token, dur], ...] per bar.
+  function renderTemplate(tpl, barLen) {
+    const half = barLen === 12 ? [8, 4] : barLen === 8 ? [4, 4] : barLen === 24 ? [12, 12] : [8, 8];
+    const bars = [];
+    if (tpl.s.length === 2) for (const tok of tpl.s) { bars.push([[tok, barLen]]); bars.push([[tok, barLen]]); }
+    else if (tpl.s.length === 4) for (const tok of tpl.s) bars.push([[tok, barLen]]);
+    else for (let i = 0; i < 8; i += 2) bars.push([[tpl.s[i], half[0]], [tpl.s[i + 1], half[1]]]);
+    return bars;
+  }
+  // Rewrite the last bar(s) of a phrase to make the requested cadence.
+  function applyCadence(rng, level, bars, cadence, barLen) {
+    const half = barLen === 12 ? [8, 4] : barLen === 8 ? [4, 4] : barLen === 24 ? [12, 12] : [8, 8];
+    const two = (x, y) => [[x, half[0]], [y, half[1]]];
+    const one = x => [[x, barLen]];
+    const n = bars.length;
+    switch (cadence) {
+      case 'half':
+        bars[n - 1] = level >= 4 && rng.chance(0.5) ? two('ii', 'V') : (level >= 3 && rng.chance(0.15) ? one('IV') : one('V'));
+        break;
+      case 'full': case 'final': {
+        const pre = level <= 2 ? rng.pick([one('V'), one('V'), one('IV')])
+          : rng.weighted([[one('V'), 3], [two('ii', 'V'), level >= 4 ? 3 : 1], [one('IV'), 1.2], [two('IV', 'V'), 1.5], [two('vi', 'V'), level >= 3 ? 0.8 : 0]]);
+        bars[n - 2] = pre; bars[n - 1] = one('I');
+        break;
       }
-      degrees.push(4, 0);
-    } else if (cadence === 'turnaround') {
-      // I -> vi -> ii -> V   (last two slots are ii V; preceding get I vi if room)
-      if (n >= 4) { degrees[n - 4] = 0; degrees[n - 3] = level >= 3 ? 5 : 3; }
-      degrees.push(level >= 2 ? 1 : 3, 4);
+      case 'turnaround':
+        if (level <= 3) { bars[n - 1] = one('V'); break; }
+        bars[n - 2] = rng.weighted([[two('I', 'vi'), 3], [two('I', 'VI7'), level >= 6 ? 2 : 0], [two('iii', 'VI7'), level >= 7 ? 2 : 0], [two('I', 'IV'), 1]]);
+        bars[n - 1] = rng.weighted([[two('ii', 'V'), 3], [two('I', 'V'), level <= 6 ? 1.2 : 0.4], [two('IV', 'V'), 1], [one('V'), level <= 5 ? 0.8 : 0.2]]);
+        break;
+      case 'deceptive': bars[n - 2] = one('V'); bars[n - 1] = one('vi'); break;
+      case 'plagal': bars[n - 2] = one('IV'); bars[n - 1] = one('I'); break;
+      default: break;
     }
-    return degrees;
+    return bars;
+  }
+  function tokenToChord(tok, key, level, rng, profile, bar, pos, dur) {
+    const p = parseToken(tok);
+    let alt = p.alt;
+    // In minor keys the "flat" chords are already diatonic (bVII is the subtonic).
+    if (key.mode === 'minor' && (p.special === 'bVII' || p.special === 'bVI' || p.special === 'bIII')) alt = 0;
+    let quality;
+    if (p.special) {
+      const q = SPECIAL[p.special].q;
+      quality = q === 'maj' ? (level >= 5 ? 'maj7' : '') : q === '7' ? (level >= 3 ? '7' : '') : (level >= 5 ? 'm7' : 'm');
+      if (key.mode === 'minor' && p.special === 'iv') quality = baseQuality(key, 3, level, rng, profile);
+    } else quality = baseQuality(key, p.deg, level, rng, profile);
+    const chord = { root: degreeRoot(key, p.deg, alt), degree: p.special ? -1 : p.deg, quality, bar, pos, dur, diatonic: !p.special };
+    if (p.special) chord.written = true; // came from the idiom itself, not a decoration
+    if (p.bass !== undefined) chord.bass = degreeRoot(key, p.bass);
+    return chord;
   }
 
   // ---- Decorations ----------------------------------------------------------
@@ -159,29 +228,27 @@ const Harmony = (() => {
     const key = sec.key;
     const nBars = sec.bars;
     const mult = k => (profile.mult && profile.mult[k] !== undefined) ? profile.mult[k] : 1;
-    // Slots per bar.
-    const slotsPerBar = [];
-    for (let b = 0; b < nBars; b++) {
-      let role = 'normal';
-      if (b === nBars - 1) role = sec.cadence === 'turnaround' ? 'turnaround' : (sec.cadence === 'half' ? 'cadence' : 'final');
-      else if (b === nBars - 2 && sec.cadence !== 'turnaround') role = 'cadence';
-      slotsPerBar.push(barSlots(rng, level, barLen, role, profile));
-    }
-    const slotCount = slotsPerBar.reduce((a, s) => a + s.length, 0);
-    const degrees = generateDegrees(rng, level, slotCount, sec.cadence, sec.startDegree);
-
-    // Build chord objects.
+    // Plan each 4-bar phrase from an idiom. The second phrase of a section
+    // often restates the first with a different ending (question / answer).
+    const phrases = Math.max(1, Math.round(nBars / 4));
+    const pool = sec.name === 'B' ? BRIDGES : TEMPLATES;
     let chords = [];
-    let idx = 0;
-    for (let b = 0; b < nBars; b++) {
-      let pos = 0;
-      for (const dur of slotsPerBar[b]) {
-        const degree = degrees[idx++];
-        chords.push({ root: degreeRoot(key, degree), degree, quality: baseQuality(key, degree, level, rng, profile),
-                      bar: b, pos, dur, diatonic: true });
-        pos += dur;
-      }
+    let prevTpl = null;
+    for (let ph = 0; ph < phrases; ph++) {
+      const isLastPhrase = ph === phrases - 1;
+      const tpl = ph > 0 && prevTpl && rng.chance(0.45) ? prevTpl : pickTemplate(rng, level, pool, profile, prevTpl);
+      prevTpl = tpl;
+      let bars = renderTemplate(tpl, barLen);
+      if (isLastPhrase) bars = applyCadence(rng, level, bars, sec.cadence, barLen);
+      else if (rng.chance(0.3)) bars = applyCadence(rng, level, bars, rng.weighted([['half', 3], ['deceptive', level >= 2 ? 2 : 0], ['plagal', 1.5]]), barLen);
+      bars.forEach((bar, bi) => {
+        let pos = 0;
+        for (const [tok, dur] of bar) { chords.push(tokenToChord(tok, key, level, rng, profile, ph * 4 + bi, pos, dur)); pos += dur; }
+      });
     }
+    // Sections that are not a multiple of 4 bars: trim or pad on the tonic.
+    chords = chords.filter(c => c.bar < nBars);
+    for (let b = Math.max(...chords.map(c => c.bar)) + 1; b < nBars; b++) chords.push(tokenToChord('I', key, level, rng, profile, b, 0, barLen));
 
     // Merge identical adjacent chords within a bar (avoid "C | C" halves).
     chords = mergeRepeats(chords);

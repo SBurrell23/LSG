@@ -25,6 +25,9 @@ const Melody = (() => {
       fillStep: Math.round(at([2, 2, 3, 4, 5, 5, 6], level)),
       pAnchor: lerp(0.75, 0.42, t),          // chance an ordinary beat is forced to a chord tone
       pSeq: lerp(0.6, 0.35, t),               // bar 2 repeats bar 1's rhythm (and usually its shape)
+      pPickup: lerp(0.25, 0.45, t),           // phrase ends that lead into the next phrase with pickup notes
+      pSus: level < 2.3 ? 0 : lerp(0.1, 0.28, t), // a note held (tied) across a chord change
+      pInvert: level < 2.5 ? 0 : 0.3,         // bar 3 restates bar 1 upside down
       temp: 0.55,                             // softmax temperature for anchor choice
       pChrom: at([0, 0, 0, 0.03, 0.07, 0.12, 0.18], level),
       pEnclosure: 0,
@@ -304,6 +307,8 @@ const Melody = (() => {
         if (d > P.leap) continue;
         s += motionScore(line, m, false) - d * 0.18;
         if (opts.phraseEnd && d > 2) s -= 0.5 * (d - 2); // endings arrive by step
+        // At the phrase climax an expressive upward leap (a 4th to a 6th) is welcome; the line steps back after.
+        if (opts.climax && m - prev >= 5 && m - prev <= 9) s += 1.4 + d * 0.18;
       }
       if (opts.leadsTo !== undefined && opts.leadsTo !== null) {
         const d = Math.abs(m - opts.leadsTo);
@@ -385,7 +390,7 @@ const Melody = (() => {
 
   // Copy a bar's pitch shape onto a new bar (same rhythm), snapping to the new
   // chords — a melodic sequence. Returns false if the shapes don't fit.
-  function snapMotif(P, key, srcEvents, dstEvents, prevPitch) {
+  function snapMotif(P, key, srcEvents, dstEvents, prevPitch, invert = false) {
     const srcPitched = srcEvents.filter(e => !e.rest);
     const dstPitched = dstEvents.filter(e => !e.rest);
     if (srcPitched.length !== dstPitched.length || !srcPitched.length) return false;
@@ -404,7 +409,8 @@ const Melody = (() => {
     let prev = null;
     for (let i = 0; i < dstPitched.length; i++) {
       const ev = dstPitched[i];
-      const raw = i === 0 ? srcPitched[0].pitch + shift : prev + (srcPitched[i].pitch - srcPitched[i - 1].pitch);
+      const step = (srcPitched[i].pitch - (i > 0 ? srcPitched[i - 1].pitch : 0)) * (invert ? -1 : 1);
+      const raw = i === 0 ? srcPitched[0].pitch + shift : prev + step;
       const allowed = ev.anchor ? new Set(chordTones(ev.chord)) : new Set(chordScale(ev.chord, ev.chord.key || key));
       let best = raw, bestD = Infinity;
       for (let m = raw - 3; m <= raw + 3; m++) {
@@ -467,7 +473,10 @@ const Melody = (() => {
             if (rng.chance(pSnap)) motifFrom = bars[srcIdx];
           }
           if (!events) {
-            events = barRhythm(rng, level, chords, ctx, isPhraseEnd || isLast, barCounter === 0 && b === 0);
+            // Bar 2 of a phrase breathes: longer notes, fewer sixteenths (density contour busy / calm / busy / cadence).
+            const calm = b % 4 === 1;
+            const calmCtx = calm ? { ...ctx, prof: Object.assign({}, ctx.prof, { l: (ctx.prof.l || 1) * 1.6, x: (ctx.prof.x || 1) * 0.6, e: (ctx.prof.e || 1) * 0.8 }) } : ctx;
+            events = barRhythm(rng, level, chords, calmCtx, isPhraseEnd || isLast, barCounter === 0 && b === 0);
           }
           // Final bar of the tune: make sure it ends on a held note.
           if (si === sections.length - 1 && isLast) {
@@ -496,8 +505,26 @@ const Melody = (() => {
         });
         const pitched = events.filter(e => !e.rest);
         if (pitched.length && (isPhraseEnd || isLast)) pitched[pitched.length - 1].anchor = true;
-        bars.push({ chords, events, copyFrom, motifFrom, key });
+        bars.push({ chords, events, copyFrom, motifFrom, key, invert: !!motifFrom && b % 4 === 2 && rng.chance(P.pInvert) });
         barCounter++;
+      }
+
+      // Pickups: a phrase that ends in a rest may lead into the next phrase with one or two notes.
+      for (let b = 3; b < nBars; b += 4) {
+        const bar = bars[b];
+        if (bar.copyFrom || (si === sections.length - 1 && b === nBars - 1) || !rng.chance(P.pPickup)) continue;
+        const last = bar.events[bar.events.length - 1];
+        if (!last || last.triplet || last.dur < beat) continue;
+        // Either the closing rest or the tail of a long final note makes room for the pickup.
+        const room = last.rest ? last.dur : last.dur - beat;
+        if (room < 2) continue;
+        const shapes = room >= 4 ? [[2], [2, 2], [4]] : [[2]];
+        const notes = rng.pick(shapes);
+        const used = notes.reduce((a, x) => a + x, 0);
+        bar.events.pop();
+        if (last.dur - used > 0) bar.events.push({ ...last, dur: last.dur - used });
+        let pos = last.pos + (last.dur - used);
+        for (const d of notes) { bar.events.push({ pos, dur: d, rest: false, triplet: null, bar: b, chord: last.chord, chordStart: false, anchor: false, pickup: true }); pos += d; }
       }
 
       // ---- phrase plan ----
@@ -544,7 +571,7 @@ const Melody = (() => {
         if (!first) { firstPitchCache.set(b, null); return null; }
         let p;
         if (bar.copyFrom) p = bar.copyFrom.events.find(e => !e.rest).pitch;
-        else if (bar.motifFrom && snapMotif(P, key, bar.motifFrom.events, bar.events, line.prev)) { bar.motifDone = true; p = first.pitch; }
+        else if (bar.motifFrom && snapMotif(P, key, bar.motifFrom.events, bar.events, line.prev, bar.invert)) { bar.motifDone = true; p = first.pitch; }
         else p = chooseAnchor(rng, P, first.chord, key, lineA, contourTarget(b, first.pos), { leadsTo: b === nBars - 1 ? nextSectionFirst() : undefined });
         firstPitchCache.set(b, p);
         return p;
@@ -561,23 +588,33 @@ const Melody = (() => {
           walkBar(ev);
           continue;
         }
-        if (bar.motifFrom && (bar.motifDone || snapMotif(P, key, bar.motifFrom.events, ev, line.prev))) {
+        if (bar.motifFrom && (bar.motifDone || snapMotif(P, key, bar.motifFrom.events, ev, line.prev, bar.invert))) {
           walkBar(ev);
           continue;
         }
         // Fresh bar: anchors and fills in order, so every note knows the line so far.
         const anchorIdx = [];
         ev.forEach((e, i) => { if (e.anchor) anchorIdx.push(i); });
+        const prevBarEvents = b > 0 ? bars[b - 1].events : [];
         anchorIdx.forEach((i, n) => {
           const e = ev[i];
           const lastAnchor = n === anchorIdx.length - 1;
-          if (n === 0 && firstPitchCache.has(b)) e.pitch = firstPitchCache.get(b);
+          const finalNote = isFinalSection && isLast && lastAnchor;
+          // Suspension: hold the previous note across the chord change (tied) when it still fits.
+          const before = i > 0 ? ev[i - 1] : prevBarEvents[prevBarEvents.length - 1];
+          const adjacent = before && !before.rest && before.pitch !== undefined && (i > 0 ? i - 1 === anchorIdx[n - 1] : true)
+            && Math.abs((before.pos + before.dur) - (i > 0 ? e.pos : barLen)) < 1e-6;
+          if (adjacent && e.chordStart && !finalNote && !(isPhraseEnd && lastAnchor) && !firstPitchCache.has(b) && rng.chance(P.pSus)
+              && chordScale(e.chord, e.chord.key || key).includes(mod(before.pitch, 12))) {
+            e.pitch = before.pitch; e.tied = true;
+          } else if (n === 0 && firstPitchCache.has(b)) e.pitch = firstPitchCache.get(b);
           else {
-            const finalNote = isFinalSection && isLast && lastAnchor;
             const leadsTo = isLast && lastAnchor ? nextSectionFirst() : undefined;
             const phraseEnd = isPhraseEnd && lastAnchor && !finalNote;
+            const plan = phrasePlan(b, line.prev);
+            const tPos = ((b % 4) * barLen + e.pos) / (4 * barLen);
             e.pitch = chooseAnchor(rng, P, e.chord, key, lineA, contourTarget(b, e.pos),
-              { finalNote, leadsTo, phraseEnd, answer: phrasePlan(b, line.prev).answer });
+              { finalNote, leadsTo, phraseEnd, answer: plan.answer, climax: Math.abs(tPos - plan.climaxAt) < 0.1 && !phraseEnd });
           }
           // Fill from the previous anchor up to this one, then land on it.
           if (n > 0) fillBetween(rng, P, key, ev, anchorIdx[n - 1], i, line, e.pitch);
