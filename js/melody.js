@@ -447,6 +447,8 @@ const Melody = (() => {
       const formSec = form[si];
       const bars = [];
       const reuse = formSec.reuse !== undefined ? out[formSec.reuse] : null;
+      // A reused section in a lifted key copies its melody transposed by the lift.
+      const copyShift = reuse ? ((sec.key.tonic - reuse.key.tonic + 18) % 12) - 6 : 0;
 
       // ---- rhythm plan ----
       // A 4-bar phrase is built as idea / idea varied / idea / answer: bar 2 may
@@ -460,7 +462,7 @@ const Melody = (() => {
         const layout = layoutKey(chords);
         // Verbatim copy from an earlier section (AABA), except the cadence bars.
         if (reuse && b < nBars - 2 && layoutKey(reuse.bars[b].chords) === layout
-            && reuse.bars[b].chords.every((c, i) => c.root === chords[i].root && c.quality === chords[i].quality)) {
+            && reuse.bars[b].chords.every((c, i) => mod(c.root + copyShift, 12) === chords[i].root && c.quality === chords[i].quality)) {
           copyFrom = reuse.bars[b];
         } else {
           let srcIdx = -1, pReuse = P.pRhythmReuse, pSnap = P.pMotif;
@@ -498,13 +500,14 @@ const Melody = (() => {
           e.chord.key = e.chord.key || key;
           e.chordStart = Math.abs(e.chord.pos - e.pos) < 1e-6;
           if (e.rest) { e.anchor = false; return; }
+          if (copyFrom) { e.anchor = !!e.anchor; firstPitched = false; return; } // copies keep the source's anchors
           const strongBeat = onBeat(e.pos, beat) && (Math.round(e.pos) % (beat * 2) === 0);
           e.anchor = firstPitched || e.chordStart || e.dur >= 6
             || (onBeat(e.pos, beat) && e.triplet === null && rng.chance(strongBeat ? P.pAnchor : P.pAnchor * 0.6));
           firstPitched = false;
         });
         const pitched = events.filter(e => !e.rest);
-        if (pitched.length && (isPhraseEnd || isLast)) pitched[pitched.length - 1].anchor = true;
+        if (pitched.length && (isPhraseEnd || isLast) && !copyFrom) pitched[pitched.length - 1].anchor = true;
         bars.push({ chords, events, copyFrom, motifFrom, key, invert: !!motifFrom && b % 4 === 2 && rng.chance(P.pInvert) });
         barCounter++;
       }
@@ -559,7 +562,9 @@ const Melody = (() => {
         const src = form[si + 1].reuse === si ? { bars } : out[form[si + 1].reuse];
         if (!src) return null;
         const fp = src.bars[0].events.find(e => !e.rest);
-        return fp && fp.pitch !== undefined ? fp.pitch : null;
+        if (!fp || fp.pitch === undefined) return null;
+        const nextShift = ((form[si + 1].key.tonic - (form[si + 1].reuse === si ? key : out[form[si + 1].reuse].key).tonic + 18) % 12) - 6;
+        return fp.pitch + nextShift;
       };
 
       // Compute (and cache) the first pitched note of bar b, without filling.
@@ -570,7 +575,7 @@ const Melody = (() => {
         const first = bar.events.find(e => !e.rest);
         if (!first) { firstPitchCache.set(b, null); return null; }
         let p;
-        if (bar.copyFrom) p = bar.copyFrom.events.find(e => !e.rest).pitch;
+        if (bar.copyFrom) p = bar.copyFrom.events.find(e => !e.rest).pitch + copyShift;
         else if (bar.motifFrom && snapMotif(P, key, bar.motifFrom.events, bar.events, line.prev, bar.invert)) { bar.motifDone = true; p = first.pitch; }
         else p = chooseAnchor(rng, P, first.chord, key, lineA, contourTarget(b, first.pos), { leadsTo: b === nBars - 1 ? nextSectionFirst() : undefined });
         firstPitchCache.set(b, p);
@@ -584,7 +589,7 @@ const Melody = (() => {
         const isLast = b === nBars - 1;
         const isPhraseEnd = b % 4 === 3 || isLast;
         if (bar.copyFrom) {
-          ev.forEach((e, i) => { e.pitch = bar.copyFrom.events[i].pitch; });
+          ev.forEach((e, i) => { e.pitch = bar.copyFrom.events[i].pitch === undefined ? undefined : bar.copyFrom.events[i].pitch + copyShift; });
           walkBar(ev);
           continue;
         }

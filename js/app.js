@@ -274,8 +274,9 @@
       + ' · ' + tune.meter + ' · ' + tune.feelName + (tune.meter === '6/8' ? ' ♩.=' : ' ♩=') + tune.tempo;
     $('tempo-btn').firstChild.textContent = tune.meter === '6/8' ? '♩. = ' : '♩ = ';
     const letters = tune.form.map(s => s.name).join('');
-    const modulates = tune.sections.some(s => s.key.name !== tune.key.name);
-    $('meta-form').textContent = totalBars + ' bars, ' + letters + (modulates ? ' (bridge modulates)' : '');
+    const lastSec = tune.sections[tune.sections.length - 1];
+    const lifted = lastSec.key.name !== tune.key.name;
+    $('meta-form').textContent = totalBars + ' bars, ' + letters + (lifted ? ' (last chorus lifts to ' + pretty(lastSec.key.name.replace(/m$/, '')) + ')' : '');
     document.title = tune.title + ' · Lead Sheet Generator';
     loadAudio();
   }

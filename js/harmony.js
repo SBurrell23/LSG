@@ -69,13 +69,19 @@ const Harmony = (() => {
     { s: ['I', 'V', 'vi', 'iii', 'IV', 'I', 'ii', 'V'], w: 1.2, min: 5 },
     { s: ['I', 'iii', 'vi', 'I', 'IV', 'V', 'iii', 'vi'], w: 0.8, min: 5 },
     // bass lines (level 5+)
-    { s: ['I', 'V/7', 'vi', 'I/5'], w: 1.5, min: 5 }, { s: ['IV', 'I/3', 'ii', 'V'], w: 1.2, min: 5 },
+    { s: ['I', 'V/7', 'vi', 'I/5'], w: 1.5, min: 5, tag: 'theatre' }, { s: ['IV', 'I/3', 'ii', 'V'], w: 1.2, min: 5, tag: 'theatre' },
     { s: ['I', 'I/3', 'IV', 'IV/5'], w: 0.8, min: 5 }, { s: ['vi', 'I/5', 'IV', 'I/3'], w: 0.8, min: 5 },
-    { s: ['I', 'V/7', 'vi', 'I/5', 'IV', 'I/3', 'ii', 'V'], w: 1, min: 6 },
+    { s: ['I', 'V/7', 'vi', 'I/5', 'IV', 'I/3', 'ii', 'V'], w: 1, min: 6, tag: 'theatre' },
     // secondary dominants written in (level 6+)
-    { s: ['I', 'VI7', 'ii', 'V'], w: 1.5, min: 6 }, { s: ['I', 'III7', 'vi', 'II7'], w: 0.8, min: 6 },
+    { s: ['I', 'VI7', 'ii', 'V'], w: 1.5, min: 6, tag: 'theatre' }, { s: ['I', 'III7', 'vi', 'II7'], w: 0.8, min: 6 },
     { s: ['ii', 'V', 'I', 'VI7'], w: 1, min: 6 }, { s: ['I', 'I7', 'IV', 'iv'], w: 1.2, min: 6 },
     { s: ['I', 'VI7', 'ii', 'V', 'iii', 'VI7', 'ii', 'V'], w: 0.8, min: 7 },
+    // theatre / Broadway ballad shapes (tagged: styles with idioms: 'theatre' prefer them)
+    { s: ['I', 'I/3', 'IV', 'iv'], w: 2, min: 5, tag: 'theatre' }, { s: ['I', 'iii', 'IV', 'iv'], w: 1.5, min: 4, tag: 'theatre' },
+    { s: ['IV', 'V', 'I', 'vi'], w: 1.5, min: 2, tag: 'theatre' }, { s: ['ii', 'V', 'iii', 'vi'], w: 1.2, min: 3, tag: 'theatre' },
+    { s: ['I', 'vi', 'IV', 'iv'], w: 1.2, min: 4, tag: 'theatre' }, { s: ['I', 'I/3', 'IV', 'V/7'], w: 1, min: 5, tag: 'theatre' },
+    { s: ['I', 'III7', 'IV', 'iv'], w: 1, min: 6, tag: 'theatre' }, { s: ['I', 'bVI', 'IV', 'I'], w: 0.8, min: 8, tag: 'theatre' },
+    { s: ['vi', 'IV', 'I', 'V', 'vi', 'IV', 'ii', 'V'], w: 0.8, min: 5, tag: 'theatre' },
     // modal / borrowed (level 7+)
     { s: ['I', 'bVII', 'IV', 'I'], w: 1.2, min: 7 }, { s: ['I', 'IV', 'iv', 'I'], w: 1, min: 7 },
     { s: ['vi', 'bVI', 'I', 'V'], w: 0.6, min: 8 }, { s: ['I', 'bIII', 'IV', 'bVII'], w: 0.7, min: 8 },
@@ -87,11 +93,12 @@ const Harmony = (() => {
     { s: ['IV', 'V', 'iii', 'vi'], w: 2, min: 3 }, { s: ['ii', 'V', 'I', 'I'], w: 1.5, min: 2 }, { s: ['vi', 'vi', 'ii', 'V'], w: 1.5, min: 2 },
     { s: ['vi', 'IV', 'ii', 'V'], w: 1.2, min: 2 }, { s: ['IV', 'IV', 'ii', 'V'], w: 1.2, min: 2 }, { s: ['iii', 'vi', 'ii', 'V'], w: 1.2, min: 3 },
     { s: ['IV', 'V/7', 'vi', 'I/5'], w: 1, min: 5 }, { s: ['ii', 'V', 'iii', 'VI7'], w: 1, min: 6 },
-    { s: ['IV', 'iv', 'I', 'I'], w: 1, min: 7 }, { s: ['bVI', 'bVII', 'I', 'I'], w: 0.8, min: 8 },
+    { s: ['IV', 'iv', 'I', 'I'], w: 1, min: 7, tag: 'theatre' }, { s: ['bVI', 'bVII', 'I', 'I'], w: 0.8, min: 8 },
+    { s: ['IV', 'iv', 'iii', 'vi'], w: 1, min: 4, tag: 'theatre' }, { s: ['ii', 'V', 'I', 'I/3'], w: 1, min: 5, tag: 'theatre' },
   ];
   const NUMERAL = { I: 0, II: 1, III: 2, IV: 3, V: 4, VI: 5, VII: 6 };
   const SPECIAL = {  // non-diatonic tokens: degree, alteration, quality family, first level
-    iv: { deg: 3, alt: 0, q: 'm', min: 6 },
+    iv: { deg: 3, alt: 0, q: 'm', min: 4 },
     I7: { deg: 0, alt: 0, q: '7', min: 6 }, II7: { deg: 1, alt: 0, q: '7', min: 6 },
     III7: { deg: 2, alt: 0, q: '7', min: 6 }, VI7: { deg: 5, alt: 0, q: '7', min: 6 },
     bII: { deg: 1, alt: -1, q: '7', min: 9 }, bIII: { deg: 2, alt: -1, q: 'maj', min: 8 },
@@ -114,6 +121,7 @@ const Harmony = (() => {
       let w = t.w;
       if (t.s.length === 8) w *= level >= 6 ? 1.2 * rate : 0.6 * rate;       // busy harmony later, and per style
       if (t.s.length === 2) w *= rate < 1 ? 1.8 : 0.8;                        // static harmony for laid-back styles
+      if (profile.idioms) w *= t.tag === profile.idioms ? 3 : 0.6;             // a style's own idioms come first
       return [t, w];
     });
     return rng.weighted(options.length ? options : pool.filter(t => templateAllowed(t, level)).map(t => [t, t.w]));
@@ -209,7 +217,11 @@ const Harmony = (() => {
       if (sec.reuse !== undefined) {
         const src = sections[sec.reuse];
         // Deep copy, then re-do the ending bars to fit this section's cadence.
-        const copy = { key: src.key, bars: src.bars.map(b => b.map(c => ({ ...c }))) };
+        // A reused section in a different key (final-chorus lift) is transposed.
+        const shift = mod(sec.key.tonic - src.key.tonic, 12);
+        const copy = { key: sec.key, bars: src.bars.map(b => b.map(c => ({
+          ...c, root: mod(c.root + shift, 12), bass: c.bass !== undefined ? mod(c.bass + shift, 12) : undefined, key: shift ? sec.key : c.key,
+        }))) };
         if (sec.cadence !== form[sec.reuse].cadence) {
           const endBars = Math.min(2, copy.bars.length);
           const fresh = generateSection(rng, level, sec, barLen, profile);

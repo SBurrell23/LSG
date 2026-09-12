@@ -13,11 +13,12 @@ const TypeIcons = (() => {
     'Blues': '<rect class="a" x="6" y="18" width="36" height="12" rx="3"/><path d="M12 22v4M18 22v4M24 22v4M30 22v4M36 22v4"/><path d="M9 18v-3h30v3M9 30v3h30v-3"/>',
     'Boogie-Woogie': '<rect class="a" x="8" y="12" width="32" height="24" rx="2"/><path d="M16 12v24M24 12v24M32 12v24"/><path d="M13 12v13h5V12M21 12v13h5V12M29 12v13h5V12" fill="currentColor" stroke="none"/><path d="M4 8l3 2M44 8l-3 2"/>',
     'Gospel': '<path class="a" d="M10 40V22l14-10 14 10v18z"/><path d="M24 4v8M20 8h8"/><rect class="a" x="20" y="30" width="8" height="10"/><path d="M4 40h40"/>',
+    'Disney Ballad': '<path class="a" d="M10 40V12h6v6h5V6h6v12h5v-6h6v28z"/><path d="M24 6V2l5 1.5L24 5"/><path class="a" d="M21 40v-7a3 3 0 0 1 6 0v7"/><path d="M13 22v4M35 22v4M24 24v3"/>',
+    'Disney Showtune': '<path class="a" d="M21 4l3 9 9 3-9 3-3 9-3-9-9-3 9-3z"/><path class="a" d="M36 24l1.6 4.4L42 30l-4.4 1.6L36 36l-1.6-4.4L30 30l4.4-1.6z"/><path class="a" d="M11 30l1.2 3 3 1.2-3 1.2-1.2 3-1.2-3-3-1.2 3-1.2z"/>',
     'Bossa Nova': '<path d="M22 40c0-11 2-19 6-25"/><path class="a" d="M28 15c-6-4-12-3-16 2 6-1 10 0 14 3z"/><path class="a" d="M28 15c2-6 8-9 14-7-5 2-8 5-10 9z"/><path class="a" d="M28 15c6-1 11 2 13 8-5-3-9-3-13-1z"/><path class="a" d="M28 15c-5 1-9 5-9 11 3-4 6-6 10-6z"/><path d="M8 40h32"/>',
     'Medium Swing': '<path class="a" d="M8 30c0-4 6-6 16-6s16 2 16 6-6 6-16 6S8 34 8 30z"/><path class="a" d="M14 28c0-8 3-14 10-14s10 6 10 14"/><path d="M14 24c4 2 16 2 20 0"/>',
     'Medium-Up Swing': '<g transform="translate(4 0)"><path class="a" d="M8 30c0-4 6-6 16-6s16 2 16 6-6 6-16 6S8 34 8 30z"/><path class="a" d="M14 28c0-8 3-14 10-14s10 6 10 14"/><path d="M14 24c4 2 16 2 20 0"/></g><path d="M2 18h6M1 24h5M2 30h6"/>',
     'Latin': '<ellipse class="a" cx="16" cy="16" rx="7" ry="8" transform="rotate(-20 16 16)"/><path d="M19 23l6 15"/><ellipse class="a" cx="32" cy="16" rx="7" ry="8" transform="rotate(20 32 16)"/><path d="M29 23l-6 15"/>',
-    'Funk': '<path d="M4 18h40"/><path class="a" d="M8 18h14v6a7 7 0 0 1-14 0z"/><path class="a" d="M26 18h14v6a7 7 0 0 1-14 0z"/><path d="M22 21c1-1 3-1 4 0"/>',
     'Reggae': '<circle class="a" cx="24" cy="19" r="7"/><path d="M24 5v4M10 19h4M34 19h4M14 9l3 3M34 9l-3 3"/><path d="M6 34c4-3 8-3 12 0s8 3 12 0 8-3 12 0"/><path d="M6 41c4-3 8-3 12 0s8 3 12 0 8-3 12 0"/>',
     'Stride': '<rect class="a" x="14" y="8" width="20" height="22" rx="2"/><path class="a" d="M8 30h32v4H8z"/><path d="M14 22h20"/>',
     // ---- 3/4

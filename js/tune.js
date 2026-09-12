@@ -68,11 +68,17 @@ const Tune = (() => {
       bKey = keyFromTonic(mod(home.tonic + iv, 12), mode, home.fifths);
       returnKey = home;
     }
+    // Some styles lift the last chorus up a half or whole step (the copied A section is transposed).
+    let lastKey = home, lift = 0;
+    if (type.harmony && type.harmony.keyLift && level >= 4 && rng.chance(0.6)) {
+      lift = rng.pick([1, 2]);
+      lastKey = keyFromTonic(mod(home.tonic + lift, 12), home.mode, home.fifths);
+    }
     return [
       { name: 'A', bars: 8, cadence: 'turnaround', key: home },
       { name: 'A', bars: 8, cadence: 'full', key: home, reuse: 0 },
       { name: 'B', bars: 8, cadence: 'half', key: bKey, returnKey },
-      { name: 'A', bars: 8, cadence: 'final', key: home, reuse: 0 },
+      { name: 'A', bars: 8, cadence: 'final', key: lastKey, reuse: 0, lift },
     ];
   }
 
@@ -118,6 +124,14 @@ const Tune = (() => {
       desc: 'Slow 12/8 feel written with triplets. Rich sevenths, walking slash-bass chords (I/3, IV/5) and passing diminished chords.',
       rhythm: { t: 2.2, l: 1.4, e: 0.8, x: 0.4, s: 0.8 },
       harmony: { mult: { secondary: 1.2, borrowed: 0.8, passingDim: 1.8, tritone: 0.3, slash: 2.0, sus: 1.2 } }, extraPcs: [3] },
+    { name: 'Disney Ballad', gchord: 'fzczfzcz', meter: '4/4', tempo: [60, 78], minLevel: 4, w: 1.5,
+      desc: 'Broadway-style ballad. Lush maj7 and add9 colour, walking bass through inversions, IV to iv "sigh" moves, sus4 resolutions, one soaring climax and a key lift for the last chorus.',
+      rhythm: { l: 1.6, q: 1.2, e: 0.9, s: 0.4, x: 0.5, t: 0.9, d: 1.1 },
+      harmony: { idioms: 'theatre', keyLift: true, mult: { secondary: 1.3, borrowed: 1.6, passingDim: 1.0, tritone: 0.3, slash: 2.2, sus: 1.6 } } },
+    { name: 'Disney Showtune', gchord: 'fcfcfcfc', meter: '4/4', tempo: [132, 168], minLevel: 4, w: 1.2,
+      desc: 'Up-tempo Broadway showtune. Bright two-feel, chromatic passing chords, secondary dominants everywhere and a big finish up a key.',
+      rhythm: { e: 1.3, q: 1.3, d: 1.2, s: 0.7, l: 0.7, t: 0.6, x: 0.4 },
+      harmony: { idioms: 'theatre', keyLift: true, mult: { secondary: 1.6, borrowed: 1.2, passingDim: 1.4, tritone: 0.4, slash: 1.6, sus: 1.2 } } },
     { name: 'Bossa Nova', gchord: 'fzcfzczc', meter: '4/4', tempo: [96, 140], minLevel: 1, w: 3,
       desc: 'Gentle Brazilian groove. Syncopated, off-beat melody over smooth maj7 and m7 chords with some ♭VI colour.',
       rhythm: { s: 2.0, e: 1.2, l: 0.8, d: 0.7, t: 0.3, q: 0.8 },
@@ -134,10 +148,6 @@ const Tune = (() => {
       desc: 'Straight-eighth Latin groove. Heavily syncopated melody, sixteenth figures, tight m7 and 7 harmony.',
       rhythm: { s: 1.8, x: 1.2, e: 1.2, l: 0.7, t: 0.3 },
       harmony: { mult: { secondary: 1.0, borrowed: 1.2, passingDim: 0.6, tritone: 1.0, slash: 0.6, sus: 1.2 } } },
-    { name: 'Funk', gchord: 'fzzczfzc', meter: '4/4', tempo: [90, 112], minLevel: 6, w: 2,
-      desc: 'Sixteenth-note funk. Short stabs and rests, off-beat accents, dominant 7ths that sit for a long time.',
-      rhythm: { x: 2.0, s: 1.6, r: 1.6, l: 0.5, t: 0.3, q: 0.6 },
-      harmony: { dominant: true, rate: 0.5, mult: { secondary: 0.3, borrowed: 0.3, passingDim: 0, tritone: 0, slash: 0.4, sus: 1.5 } }, extraPcs: [3, 10] },
     { name: 'Reggae', gchord: 'zczczczc', meter: '4/4', tempo: [70, 92], minLevel: 3, w: 1.5,
       desc: 'Laid-back one drop. Off-beat entries and rests in the melody, simple m7 and triad harmony that stays put.',
       rhythm: { r: 1.6, s: 1.6, e: 1.0, l: 0.8, t: 0.3, x: 0.5 },
@@ -309,19 +319,6 @@ const Tune = (() => {
         ['Postcard from {Place}', 4], ['Dreaming of {Place}', 3],
       ],
     },
-    funk: {
-      adj: ['Greasy', 'Sticky', 'Chunky', 'Nasty', 'Funky', 'Fat', 'Dirty', 'Stanky', 'Deep', 'Low', 'Heavy', 'Chicken',
-        'Crispy', 'Juicy', 'Rubber', 'Sloppy', 'Lumpy', 'Gritty', 'Swampy', 'Bumpy', 'Crunchy', 'Wobbly', 'Slippery', 'Big'],
-      noun: ['Pocket', 'Groove', 'Gravy', 'Grits', 'Biscuit', 'Shuffle', 'Strut', 'Stomp', 'Slap', 'Bounce', 'Bump',
-        'Wiggle', 'Boogaloo', 'Backbeat', 'Boots', 'Sandwich', 'Waffle', 'Pickle', 'Gumbo', 'Jambalaya', 'Chicken',
-        'Meatball', 'Hot Sauce', 'Skillet', 'Noodle', 'Pretzel', 'Doughnut', 'Basement', 'Sneaker', 'Elbow'],
-      templates: [
-        ['{Adj} {Noun}', 26], ['The {Noun}', 8], ["{Name}'s {Noun}", 8], ['Get the {Noun}', 6], ['{Noun} Machine', 6],
-        ['{Adj} {Noun} Strut', 5], ['Pass the {Noun}', 6], ['Too Much {Noun}', 5], ['{Noun} Time', 5],
-        ['Mister {Noun}', 4], ['{Adj} Mama', 3], ['Big {Noun}', 4], ['Do the {Noun}', 6], ['{Noun} on {Street}', 5],
-        ['Who Ate the {Noun}?', 3], ['Extra {Noun}', 3],
-      ],
-    },
     medium: {
       adj: ['Autumn', 'Blue', 'Midnight', 'Velvet', 'Lazy', 'Crimson', 'Silent', 'Sunday', 'Neon', 'Paper', 'Amber',
         'Quiet', 'Golden', 'Restless', 'Hollow', 'Winter', 'Distant', 'Tender', 'Late', 'Emerald', 'Northern', 'Scarlet',
@@ -353,10 +350,9 @@ const Tune = (() => {
 
   function moodFor(feelName, meter) {
     if (meter === '3/4') return 'waltz';
-    if (/Ballad|Tango|Habanera|Gospel/.test(feelName)) return 'slow';
+    if (/Ballad|Tango|Habanera|Gospel/.test(feelName)) return 'slow'; // includes Disney Ballad
     if (/Swing|Ragtime|Polka|March|Stride|Blues|Boogie|Jig|Tarantella/.test(feelName)) return 'swing';
     if (/Bossa|Latin|Samba|Reggae/.test(feelName)) return 'latin';
-    if (/Funk/.test(feelName)) return 'funk';
     return 'medium';
   }
   // Some types like to say what they are in the title.
@@ -377,6 +373,10 @@ const Tune = (() => {
     Habanera: [['Habanera for {Name}', 4], ['{Adj} Habanera', 4], ['Habanera at {Time}', 2]],
     'Country Waltz': [["{Name}'s Waltz", 3], ['{Adj} Country Waltz', 2], ['Waltz for {OddName}', 2], ['Back-Porch Waltz', 1]],
     '6/8 Ballad': [['{Adj} {Noun}', 4], ['{Noun} for {Name}', 3], ['Rocking {Noun}', 1]],
+    'Disney Ballad': [['Once Upon a {Noun}', 4], ['Somewhere Past the {Noun}', 3], ['The {Adj} Kingdom', 3], ['Beyond the {Noun}', 3],
+      ['{Name} Dreams', 2], ['A {Adj} Kind of Magic', 2], ['If Only, {Name}', 2], ['The {Noun} in My Heart', 2], ['Ever After', 1]],
+    'Disney Showtune': [['Welcome to the {Noun}', 4], ['Make Way for {Name}!', 3], ['The {Adj} Parade', 3], ['Everybody Loves {Name}', 2],
+      ['One Big {Noun}', 2], ['Sing, {Name}, Sing', 2], ['{Adj} and Proud of It', 2], ['The Grand {Noun}', 2], ['Step Right Up', 1]],
     Minuet:  [['Minuet for {Name}', 4], ['{Adj} Minuet', 4], ['Minuet at {Time}', 2], ['Minuet in {WaltzIn}', 2]],
   };
 
@@ -384,7 +384,7 @@ const Tune = (() => {
     const mood = moodFor(feelName, meter);
     const pool = POOLS[mood];
     let adj = pool.adj, noun = pool.noun;
-    if (mode === 'minor' && mood !== 'funk') {
+    if (mode === 'minor') {
       // Minor keys borrow the darker words (roughly a third of the pool).
       adj = adj.concat(MINOR_ADJ, MINOR_ADJ); noun = noun.concat(MINOR_NOUN);
     }
