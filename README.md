@@ -33,9 +33,9 @@ Notation rendering and playback use [abcjs](https://github.com/paulrosen/abcjs) 
 | 2 | Keys up to 1 accidental, adds ii and vi | Dotted halves, small leaps |
 | 3 | Up to 2 accidentals, adds iii and an occasional V7, some 3/4 tunes | A few eighth-note pairs |
 | 4 | 32-bar AABA with turnarounds; triads with V7, two chords per bar at cadences | Eighth pairs and dotted quarters |
-| 5 | Seventh chords throughout, keys up to 3 accidentals | Rests, dotted rhythms, light syncopation |
-| 6 | Occasional secondary dominants, 7sus4, minor keys | Off-beat eighths, dotted-eighth figures, a stray chromatic note |
-| 7 | More secondary dominants, ii–V of x, keys up to 4 accidentals | Triplets, syncopated bars, wider range |
+| 5 | A few seventh chords (V7 always, maj7/m7 here and there), keys up to 3 accidentals | Rests, dotted rhythms, light syncopation |
+| 6 | Sevenths on most chords, occasional secondary dominants, 7sus4, minor keys | Off-beat eighths, dotted-eighth figures, a stray chromatic note |
+| 7 | Sevenths throughout, more secondary dominants, ii–V of x, keys up to 4 accidentals | Triplets, syncopated bars, wider range |
 | 8 | Borrowed chords (iv, ♭VI), slash chords, 6 and m6 | First sixteenth figures, chromatic approach notes |
 | 9 | Passing diminished, backdoor ♭VII7, V7♭9 in minor, keys up to 5 accidentals | Sixteenth figures, tresillo rhythms, bigger leaps |
 | 10 | Plus tritone substitutions and denser changes | Octave leaps, frequent chromatic approaches |

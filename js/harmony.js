@@ -190,7 +190,10 @@ const Harmony = (() => {
       if (degree === 6) return 'm7b5';
       return d.triad;
     }
-    // Level 5+: sevenths (with some sixths / triads for colour from level 8)
+    // Level 5-6: sevenths creep in (V7 always; maj7 / m7 on roughly a third of chords at 5, two thirds at 6).
+    // Level 7+: sevenths throughout (with some sixths / triads for colour from level 8).
+    const p7 = level === 5 ? 0.35 : level === 6 ? 0.65 : 1;
+    if (p7 < 1 && !rng.chance(p7)) return degree === 4 ? '7' : degree === 6 ? 'm7b5' : d.triad;
     if (key.mode === 'major') {
       if (degree === 0) return rng.pick(level >= 8 ? ['maj7', 'maj7', '6', ''] : ['maj7', 'maj7', '']);
       if (degree === 3) return rng.pick(level >= 8 ? ['maj7', 'maj7', '6'] : ['maj7']);
